@@ -3,19 +3,25 @@
 ## Status: Planning
 
 ## Summary
-Project set up and Git initialised. High-level brief established. No code exists yet in this repository — Alex's existing build (for a different project) is the reference point but lives elsewhere.
+Planning phase complete. Session plan agreed. Approach, constraints, and key decisions documented. No code exists yet. Ready to begin exploratory work once Alex's files are dropped into the reference folder.
 
 ## What exists
 - Project folder structure created
-- Git repository initialised and initial commit pushed to GitHub
+- Git repository initialised and committed to GitHub
 - No code in code_base yet
+- No files in reference folder yet
 
 ## What is in progress
-- Nothing yet — exploratory phase to begin next session
+- Nothing — planning phase concluded, exploratory phase not yet started
 
 ## What is not started
-- Exploratory review of Alex's existing Excel/VBA build
-- Review of the two new project templates
-- Planning the adapted builds
-- Development
-- Testing
+- Reference folder population (Alex's .xlsm, exported VBA modules, user instructions, two new project templates)
+- Session 1: Document Alex's tool
+- Session 2: Interpret Alex's tool
+- Session 3: Understand the new templates
+- Session 4: Design decisions
+- Session 5: Test database and API verification
+- Session 6: Build Tool 1
+- Session 7: Test and iterate Tool 1
+- Session 8: Build Tool 2
+- Session 9: Test and iterate Tool 2 + final review
