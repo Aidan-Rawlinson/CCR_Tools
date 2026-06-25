@@ -57,18 +57,36 @@
 - Both `Template_Processing_Tool.xlsm` and `User_Template.xlsx` inspected in full using `read_excel` for the first time
 - All five `.bas` modules already documented from Session 3 (original) — not re-read
 - Alex's NACEL Submission Importer guidance PDF reviewed (now in Project Files as `GuidanceDifferent_tool.pdf`)
-- `Alex_Tool_Reference.md` rewritten to incorporate all findings. Key additions vs previous version:
-  - `Lists` sheet documented
-  - Home sheet row layout corrected (rows 2–5 were transposed in previous version)
-  - Named ranges table expanded with confirmed live values (ProjectID = 40, ServiceID = 146)
-  - `SubmissionFolder` dev path issue called out
-  - Full User Template section added: sheet structure, section headers, fixed 81-row capacity, two distinct `Drop downs` sheets, service item ID in B1
-  - Question count confirmed as 88
-  - Known issues consolidated into a single table
-  - Guidance document filename corrected to `.docx`
+- `Alex_Tool_Reference.md` rewritten to incorporate all findings
 - Notable findings and clarifications:
   - Question number labelling error in Home row 2 (Q51 unlabelled) — confirmed as a data entry error in the workbook
-  - BM column holds a database heading stored as a question — no response data expected; blank-skip logic should handle it (verify in Session 4)
+  - BM column holds a database heading stored as a question — no response data expected; blank-skip logic should handle it
   - Template has fixed capacity of 81 rows (ref numbers 101–181)
   - Tool's `Orgs` sheet is a 29-org managed subset; template's `Org list` has 95 orgs (full programme)
   - Two `Drop downs` sheets serve different purposes: template's drives Excel validation (text only); tool's drives import lookup (text + item IDs)
+
+## Session 5 — 25 June 2026
+
+**Outcome:** Interpretation complete. Solution designed. Build plan agreed. `write_excel` MCP tool built and verified.
+
+- Both new questionnaire templates inspected in full via `read_excel`:
+  - Managing Frailty: Project ID 35, sheet `CCR`, up to 50 patients, 42 questions, 2 narrative questions
+  - Virtual Ward: Project ID 68, sheet `CCR`, up to 75 patients, 36 questions, 6 narrative questions
+- Transposed orientation confirmed: questions in rows (col B), patients in columns (col E+), question type in col D
+- Four question type strings confirmed from col D: `Yes/No`, `Numerical`, `Drop-down list: ...`, `Narrative`
+- Section header rows confirmed (no value in col D) — must be filtered by importer
+- `Support` sheet confirmed as clean machine-readable source for Project ID and submission period
+- QIDs and list item IDs confirmed as absent from templates — to be supplied via SSMS CSVs
+- Unique reference mechanism confirmed: "Patient 1", "Patient 2" etc. maps directly to Alex's numeric ref pattern
+- Solution architecture agreed:
+  - One generalised VBA codebase, no project-specific logic in code
+  - Three workbook instances: Base, Managing Frailty, Virtual Ward
+  - New `Config` sheet holds all configuration (replaces Alex's scattered named ranges)
+  - Orientation toggle (`Columns` / `Rows`) and Environment toggle (`Test` / `Live`) as data validation drop-downs
+  - ServiceID = 0 for both new projects, held in Config
+  - `.xlsx` format for workbook creation (openpyxl limitation); user saves as `.xlsm` before importing `.bas` files
+- Build plan agreed: 7 sessions (Sessions 5–11), gated on test database access before Session 7
+- `write_excel` MCP tool designed, written, and deployed to live `server.py`
+- Verified working via test file (`test_greeting.xlsx`) — all 13 operations confirmed functional
+- Static spec documents populated: `Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`
+- `Decisions.md` updated with all new decisions from this session
