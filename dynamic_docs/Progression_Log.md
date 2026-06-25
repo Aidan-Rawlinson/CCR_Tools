@@ -109,3 +109,20 @@
 - Each project treated as fully independent — no cross-referencing of item IDs between projects
 - ⚠️ **Major flag identified:** Virtual Ward question `x62624-1` ("Referral date") is type `DT` — a date type not present in Alex's tool or Managing Frailty. Requires a new question type branch in the importer and orchestration modules, plus a date conversion function. API date format not yet confirmed. This is a blocking item for Session 8. Logged in Decisions.md and Next_Session.md.
 - Minor flag: `163666` (re-admission) — database values use capital W ("Within") vs template lowercase ("within"). Database is authoritative; Drop downs sheet will use database values. Users will correct orange cells per standard workflow.
+
+## Session 7 — 25 June 2026
+
+**Outcome:** Drop downs sheets built and formatted for both tool instances. All DT/TX question type design decisions resolved.
+
+- Pre-session design work:
+  - TX (free text) confirmed: pass value through directly, same as N (numeric). No Drop downs entry needed.
+  - DT (date) fully designed: input is Excel date serial number; validate range 1 June–31 August 2026; convert to `YYYY-MM-DD 00:00:00.000`; non-numeric or out-of-range → orange cell. API format confirmed by inspecting SSMS date column (`1900-01-01 17:17:00.000` format). API `questionType` string for DT still to be confirmed.
+  - All blocking items on DT cleared except API `questionType` string.
+- Drop downs sheets built from SSMS CSVs:
+  - `environment/managing_frailty_dropdowns.xlsx` — 10 LS questions, columns A–T, verified correct
+  - `environment/virtual_ward_dropdowns.xlsx` — 18 LS questions, columns A–AJ, verified correct
+- Both sheets formatted consistently:
+  - Row 1 (QIDs): dark navy background (`2E3A87`), bold
+  - Row 2 (question labels): grey-blue background (`BFC9E0`), bold
+  - Data rows: alternating light blue (`EEF1F8`) / white column pairs — odd-numbered questions coloured, even-numbered white
+- `write_excel` tool behaviour noted: formatting operations require data and formatting to be written in a single operation chain (tool does not open existing files for modification)

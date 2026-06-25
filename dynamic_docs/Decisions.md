@@ -58,11 +58,15 @@ Both the `reference/` folder (Alex's `.xlsm`, exported `.bas` modules, guidance 
 ### Alex's layout, structure, approach and formatting as the default
 All build decisions default to following Alex's tool. Deviations are made only where the new requirements make them unavoidable. This respects Alex's work, keeps the tools feeling like a coherent family, and reduces the interpretive burden on the builder.
 
-### ⚠️ DT (date) question type identified — requires new handling (Virtual Ward, x62624-1)
-The Virtual Ward questionnaire (Project 68) contains one question of type `DT`: "Referral date" (question ID `x62624-1`). This question type does not exist in Alex's tool or in the Managing Frailty questionnaire. It represents a date field, stored as a `DD/MM/YYYY` string in the Excel template (column D of the CCR sheet shows "Narrative", meaning free text entry by the clinician).
+### Five question types: LS, YN, N, TX, DT
+The new questionnaires introduce two question types not present in Alex's tool:
 
-This introduces two requirements not present elsewhere in the build:
-1. **A new question type branch** in the importer and API post logic — `DT` must be handled alongside `LS`, `YN`, `N`, and `TX`.
-2. **A date conversion function** — the value entered in the template will be a date string (format `DD/MM/YYYY`, per the template guidance). Before posting to the API, this must be converted to whatever format the API expects. The correct API date format is **not yet confirmed** and must be established with the API team before Session 8.
+**TX (free text):** Present in both Managing Frailty (2 questions) and Virtual Ward (4 questions). All are "if other please specify" type fields. TX is handled identically to `N` (numeric) — the value is passed through to the API directly as a string, with no lookup or conversion. No entry in the Drop downs sheet is required.
 
-This is a **MAJOR FLAG**. The `DT` type is unique to Virtual Ward in the current scope and was not anticipated in the original architecture. The conversion rule and API format must be agreed before the importer (`B1_Importer.bas`) and orchestration (`A3_API_Calls.bas`) modules are written. Do not begin Session 8 without this resolved.
+**DT (date):** Present in Virtual Ward only — one question, `62624` ("Referral date"). Users have been instructed to enter dates in `DD/MM/YYYY` format, but the template cell type is not enforced as text. Any entry close to a date format will have been silently converted by Excel into a date serial number (a numeric value with date formatting). The handling logic is therefore:
+
+- **If the cell value is numeric:** treat as an Excel date serial. Validate that the date falls within the expected submission window: **1 June 2026 to 31 August 2026** (Excel serials 46,174 to 46,269 inclusive). If valid, convert to `YYYY-MM-DD 00:00:00.000` format for the API. Time component is always `00:00:00.000`.
+- **If the cell value is not numeric (text, empty, or anything else):** flag to the user via the standard orange cell convention.
+- **If the cell value is numeric but outside the valid date range:** also flag orange.
+
+The API expects dates in `YYYY-MM-DD HH:mm:ss.000` format, confirmed by inspecting the date column format in SSMS (value: `1900-01-01 17:17:00.000`). The `questionType` string for DT in the API payload is still to be confirmed — this is the only remaining open item for the DT implementation.

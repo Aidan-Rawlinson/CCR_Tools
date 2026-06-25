@@ -4,6 +4,8 @@
 > The source files in `reference/` are the ground truth. This document captures what is needed to make build decisions.
 >
 > **Inspection history:** `.bas` modules read in Session 3 (original). `.xlsm` and `User_Template.xlsx` read in Session 3 (redo) using `read_excel`. Both files now fully inspected.
+>
+> **Known inspection gap:** `read_excel` (openpyxl) does not surface buttons — Form Controls and ActiveX Controls, including their labels, positions, and macro assignments, are invisible to this tool. Button details in this document were supplied by direct observation of the workbook by the user.
 
 ---
 
@@ -55,6 +57,20 @@ A two-stage Excel/VBA tool. Stage 1 imports data from clinician-submitted Excel 
 | I | Case code (written back after successful API post) |
 | J | Unique reference number (from template column A) |
 | K–CS | Question response data (88 questions; see Known Issues for anomalies) |
+
+---
+
+## Buttons
+
+Buttons were not visible via `read_excel` inspection — details supplied by direct user observation. Three buttons exist on the Home sheet:
+
+| Button label | Macro called | Purpose |
+|---|---|---|
+| *(unlabelled, next to Submission Folder Path)* | `FileImporter` | Reads the path in the Submission Folder Path cell, opens the template file(s) at that location, and pulls all patient records into the Home sheet |
+| `DatabaseToggle` | `ToggleButton` | Switches the environment between Test and Live by writing to the `Toggle` named range |
+| `Import Data to Database` | `PostSurveyData` | Iterates all rows in Home where column F = "Yes" and runs the full create/post/close API sequence for each |
+
+**Note on `FileImporter` naming:** The button is positioned next to the file path input, which might suggest it refreshes the path. It does not — it triggers the full import of data from the template file at that path into the Home sheet. The name is accurate; the co-location with the path field is what causes the ambiguity.
 
 ---
 
@@ -239,6 +255,7 @@ On completion: MsgBox "Import Complete"
 | **Transpose bug workaround** | When responses array has only one row, `Application.Transpose` collapses to 1D. Alex works around this with a manual loop into a fresh 2D array |
 | **Token fetched per call** | No token caching — each `APICall` / `APIPost` makes a fresh auth request first |
 | **Credentials** | Were hardcoded in `GetToken()` — replaced with `[USERNAME]` / `[PASSWORD]` placeholders in reference files |
+| **Buttons not visible via read_excel** | openpyxl does not surface Form Controls or ActiveX Controls. Button labels, positions, and macro assignments cannot be read programmatically — must be supplied by direct observation of the workbook |
 
 ---
 
