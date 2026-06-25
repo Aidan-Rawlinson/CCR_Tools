@@ -1,4 +1,4 @@
-<!-- Purpose: A session-by-session history of what was built and what was decided. The project record. Authored by Claude at session level, not micro-decision level. -->
+<!-- Purpose: A session-by-session history of what was built and what was decided. The project record. Authored by Claude at session end. -->
 
 ## Session 1 — 24 June 2026
 
@@ -49,3 +49,26 @@
   - Transposed template layout (questions in rows, patients in columns) vs Alex's layout (questions in columns, patients in rows)
   - Four response types to support (`response_list_id`, `response_txt`, `response_yn`, `response_num`) vs Alex's three (`LS`, `YN`, `N`) — `TX` (free text) type to be confirmed with API team
 - Decision taken: roll back to redo Session 3 properly before proceeding
+
+## Session 3 (redo) — 25 June 2026
+
+**Outcome:** Alex's tool fully documented. `Alex_Tool_Reference.md` rewritten and complete.
+
+- Both `Template_Processing_Tool.xlsm` and `User_Template.xlsx` inspected in full using `read_excel` for the first time
+- All five `.bas` modules already documented from Session 3 (original) — not re-read
+- Alex's NACEL Submission Importer guidance PDF reviewed (now in Project Files as `GuidanceDifferent_tool.pdf`)
+- `Alex_Tool_Reference.md` rewritten to incorporate all findings. Key additions vs previous version:
+  - `Lists` sheet documented
+  - Home sheet row layout corrected (rows 2–5 were transposed in previous version)
+  - Named ranges table expanded with confirmed live values (ProjectID = 40, ServiceID = 146)
+  - `SubmissionFolder` dev path issue called out
+  - Full User Template section added: sheet structure, section headers, fixed 81-row capacity, two distinct `Drop downs` sheets, service item ID in B1
+  - Question count confirmed as 88
+  - Known issues consolidated into a single table
+  - Guidance document filename corrected to `.docx`
+- Notable findings and clarifications:
+  - Question number labelling error in Home row 2 (Q51 unlabelled) — confirmed as a data entry error in the workbook
+  - BM column holds a database heading stored as a question — no response data expected; blank-skip logic should handle it (verify in Session 4)
+  - Template has fixed capacity of 81 rows (ref numbers 101–181)
+  - Tool's `Orgs` sheet is a 29-org managed subset; template's `Org list` has 95 orgs (full programme)
+  - Two `Drop downs` sheets serve different purposes: template's drives Excel validation (text only); tool's drives import lookup (text + item IDs)

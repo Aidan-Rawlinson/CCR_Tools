@@ -2,6 +2,8 @@
 
 > This document is a distilled reference for builders, not a full code listing.
 > The source files in `reference/` are the ground truth. This document captures what is needed to make build decisions.
+>
+> **Inspection history:** `.bas` modules read in Session 3 (original). `.xlsm` and `User_Template.xlsx` read in Session 3 (redo) using `read_excel`. Both files now fully inspected.
 
 ---
 
@@ -16,41 +18,90 @@ A two-stage Excel/VBA tool. Stage 1 imports data from clinician-submitted Excel 
 | Sheet | Purpose |
 |---|---|
 | `Home` | Central data sheet — imported rows, import toggle column, case code column, question response columns |
-| `Orgs` | Hidden/background sheet — holds the `Toggle` named range (Live/Test switch) |
-| `Drop downs` | Lookup sheet — holds valid response options per question, keyed by question ID |
+| `Lists` | Small sheet (3 cells) — holds a "Submission Validation List" with 2 org entries. Likely a leftover from an earlier iteration; not active in current tool |
+| `Drop downs` | Lookup sheet — holds valid response text and list item IDs per LS question, keyed by question ID |
+| `Orgs` | Background sheet — holds the org list (29 orgs, a managed subset of the full programme) and the `Toggle` named range |
 
 ### Key Named Ranges
 
-| Name | Sheet | Purpose |
-|---|---|---|
-| `Toggle` | `Orgs` | `"Live"` or `"Test"` — controls which API URLs are used |
-| `QuestionCols` | `Home` | Range covering the question ID header row — used to iterate questions |
-| `DropDownQs` | `Drop downs` | Header row of the dropdown lookup table — used to find the right column per question |
-| `ProjectID` | `Home` | The project ID passed to API calls |
-| `ServiceID` | `Home` | The service ID passed to `API_PostSurvey` |
-| `SubmissionFolder` | `Home` | Folder path used by the file importer to find source templates |
+| Name | Points to | Value | Purpose |
+|---|---|---|---|
+| `Toggle` | `Orgs!J4` | `"Test"` | `"Live"` or `"Test"` — controls which API URLs are used |
+| `QuestionCols` | `Home!$J$4:$CS$4` | — | QID header row — used to iterate questions during import |
+| `DropDownQs` | `'Drop downs'!$A$1:$BX$1` | — | Header row of the dropdown lookup table — used to find the right column per question |
+| `ProjectID` | `Home!$C$5` | `40` | Project ID passed to API calls |
+| `ServiceID` | `Home!$C$7` | `146` | Service ID passed to `API_PostSurvey` |
+| `SubmissionFolder` | `Home!$C$9` | *(dev path)* | Folder path used by the file importer. Contains a dev artefact path (`C:\Development Area\Member Submission Importer\Test Data\`) — must be replaced in any new tool instance |
+| `Org_Id` | `Home!#REF!` | — | **Broken — points to a deleted or moved cell.** Code likely does not rely on this range; org ID comes from data rows directly |
 
-### Home Sheet Layout (key columns)
+### Home Sheet Layout
+
+| Row | Content |
+|---|---|
+| 2 | Question numbers (1–86, with a labelling error — see Known Issues) |
+| 3 | Question type codes: `YN`, `LS`, or `N` |
+| 4 | Question IDs — header label "QID (hide)". This is the row `QuestionCols` iterates |
+| 5 | Column headers: "Process?", "Organisation", "Sub ID", "CaseCode", "Unique Ref." in F–J; full question text from K onwards |
+| 6+ | Data rows |
 
 | Column | Content |
 |---|---|
-| F | Import toggle — Yes/No dropdown (applied by importer) |
-| G | Source organisation (populated by importer from source file `B5`) |
-| H | Source submission ID (populated by importer from source file `B6`) |
+| C5 | `ProjectID` (value: 40) |
+| C7 | `ServiceID` (value: 146) |
+| C9 | `SubmissionFolder` (contains dev path — replace per instance) |
+| F | Import toggle — Yes/No (applied by importer) |
+| G | Source organisation (populated from template B5) |
+| H | Source submission ID (populated from template B6) |
 | I | Case code (written back after successful API post) |
-| J onwards | Question response data (pasted from source template row 11+) |
-| Row 4 | Question IDs (used to build API payload) |
-| Row 5 | Question type codes: `LS`, `YN`, or `N` (see Question Types below) |
+| J | Unique reference number (from template column A) |
+| K–CS | Question response data (88 questions; see Known Issues for anomalies) |
 
 ---
 
-## Source Template Structure
+## Source Template Structure (`User_Template.xlsx`)
 
 - Data sheet name: `Bed based CCR` *(project-specific — will differ in new tools)*
-- Org identifier: cell `B5`
-- Submission ID: cell `B6`
+- Service Item ID: cell `B1` (value: `146` — matches `ServiceID` in the tool; hidden row)
+- Org identifier: cell `B5` *(blank — filled in by submitting trust; no validation in template)*
+- Submission name: cell `B6` *(blank — filled in by submitting trust)*
+- QID row: row 9 (hidden)
+- Question text row: row 10
 - Data rows start at: row 11
-- Data columns: A–CJ (columns 1–88 scanned for last row detection)
+- Unique reference numbers: pre-populated in column A, rows 11–91, values 101–181
+- **Fixed capacity: 81 rows.** Trusts submitting more than 81 records would need multiple files or a template extension
+- Data columns: A–CJ (88 question columns)
+
+### Template Sheet Structure
+
+| Sheet | Purpose |
+|---|---|
+| `Bed based CCR` | Main data entry sheet — the one the importer reads |
+| `Org list` | 95 organisations (full programme list, alphabetically sorted). Different from the tool's `Orgs` sheet which is a 29-org managed subset |
+| `Drop downs` | Valid response text values only (no item IDs). This is what Excel's dropdown validation uses — distinct from the tool's `Drop downs` sheet which pairs text with list item IDs |
+
+### Template Row 8 — Section Headers
+
+Row 8 groups questions into named sections. Informational only — above the data range, not read by the importer:
+
+| Section | Columns |
+|---|---|
+| Referral Information | B–G |
+| Patient Information | H–M |
+| Modified Barthel Index on admission | N–X |
+| Record of staff contact | Y–AO |
+| Care planning | AP–AW |
+| Frailty | AX–BQ |
+| Harm in care | BR–BS |
+| Discharge information | BT–BY |
+| Modified Barthel Index on discharge | BZ–CJ |
+
+---
+
+## Question Count
+
+**Authoritative count: 88 questions** (confirmed from template QID row, columns A–CJ).
+
+The tool's Home sheet question columns run K–CS (plus one anomalous column — see Known Issues). The `QuestionCols` named range covers `Home!$J$4:$CS$4`.
 
 ---
 
@@ -61,6 +112,20 @@ A two-stage Excel/VBA tool. Stage 1 imports data from clinician-submitted Excel 
 | `LS` | List select | `"list"` | Response text looked up against `Drop downs` to get item ID |
 | `YN` | Yes/No | `"yn"` | `"Yes"` → `"""Y"""`, `"No"` → `"""N"""` (JSON-quoted) |
 | `N` | Numeric | `"number"` | Value passed directly |
+
+---
+
+## Drop Downs Sheet
+
+Structured with question IDs in row 1 (odd columns: A, C, E…), question labels in row 2 (same odd columns), and response text + list item ID pairs in the adjacent even column from row 3 downwards. Covers 38 LS-type questions. Not guaranteed to cover all LS questions — cross-reference against the full QID list before building.
+
+The template's own `Drop downs` sheet contains the same response text values but without item IDs — that sheet drives Excel validation for clinicians. The tool's `Drop downs` sheet is the lookup used during import to resolve text → item ID.
+
+---
+
+## Orgs Sheet
+
+29 organisations (a managed subset — trusts that agreed to submit by Excel). Columns: A = Org ID, B = Org Name, C = Concatenated display string. Submission ID column D is labelled but empty — submissions retrieved via API. `Toggle` named range at J4.
 
 ---
 
@@ -76,12 +141,12 @@ A two-stage Excel/VBA tool. Stage 1 imports data from clinician-submitted Excel 
 
 ### Base URLs
 
-All functions have a Live and Test variant, switched by the `Toggle` named range:
-
 | Environment | Base |
 |---|---|
 | Live | `https://membersapi.nhsbenchmarking.nhs.uk/` |
 | Test | `https://membersapidev.nhsbenchmarking.nhs.uk/` |
+
+Switched by the `Toggle` named range.
 
 ### API Calls
 
@@ -160,20 +225,26 @@ On completion: MsgBox "Import Complete"
 
 ---
 
-## Known Gotchas
+## Known Issues and Anomalies
 
-- **Hardcoded year:** `2026` appears in Get Submissions and Get Case Code Responses URLs — needs parameterising in new tools
-- **Hardcoded sheet name:** `Bed based CCR` in `FileImporter` — project-specific, will differ per new tool
-- **Hardcoded dev path:** `SaveJSONToFile` writes to `C:\Development Area\NACEL Submission Importer\` — dev artefact, not used in normal operation (call is commented out)
-- **Transpose bug workaround:** When the responses array has only one row, `Application.Transpose` collapses it to 1D. Alex works around this with a manual loop into a fresh 2D array before passing to `API_PostSurvey`
-- **Token fetched per call:** No token caching — each `APICall` / `APIPost` makes a fresh auth request first
-- **Credentials:** Were hardcoded in `GetToken()` — replaced with `[USERNAME]` / `[PASSWORD]` placeholders in the `.bas` reference files and the `.xlsm`
+| Issue | Detail |
+|---|---|
+| **Question number labelling error** | Home row 2 skips a number — what would be Q51 ("If the patient received frailty screening, was the outcome added to their discharge summary?") has no label in row 2, but has a valid type code and QID. Data entry error in the workbook; not a structural issue |
+| **BM column — database heading stored as question** | BM3 has type code `YN` but BM4 is empty and BM5 is the section header "55. Which of the following CGA components were completed during the admission?". The database treats headings as questions. No response data expected here; blank-skip logic should handle it gracefully — verify in Session 4 |
+| **`Org_Id` named range broken** | Points to `Home!#REF!`. Likely a deleted or moved cell. Code does not appear to rely on it |
+| **`SubmissionFolder` contains dev path** | `Home!C9` = `C:\Development Area\Member Submission Importer\Test Data\`. Must be replaced per tool instance |
+| **Hardcoded year** | `2026` appears in Get Submissions and Get Case Code Responses URLs — needs parameterising in new tools |
+| **Hardcoded sheet name** | `Bed based CCR` in `FileImporter` — project-specific, will differ per new tool |
+| **Hardcoded dev path in SaveJSONToFile** | Writes to `C:\Development Area\NACEL Submission Importer\` — dev artefact, call is commented out |
+| **Transpose bug workaround** | When responses array has only one row, `Application.Transpose` collapses to 1D. Alex works around this with a manual loop into a fresh 2D array |
+| **Token fetched per call** | No token caching — each `APICall` / `APIPost` makes a fresh auth request first |
+| **Credentials** | Were hardcoded in `GetToken()` — replaced with `[USERNAME]` / `[PASSWORD]` placeholders in reference files |
 
 ---
 
 ## Guidance Document Notes
 
-The PDF `Guidance(Different tool).pdf` in `reference/` is user-facing instructions for a **different project's clone** of this tool — same architecture, different API calls, different database setup. It is useful as a guide to the intended user journey but is not authoritative on implementation detail for the tools we are building.
+The file `Guidance(Different tool).docx` in `reference/` is user-facing instructions for a **different project's clone** of this tool — same architecture, different API calls, different database setup. Useful as a guide to the intended user journey but not authoritative on implementation detail for the tools we are building.
 
 ### What it covers well
 - The overall user journey and step sequence
@@ -181,7 +252,7 @@ The PDF `Guidance(Different tool).pdf` in `reference/` is user-facing instructio
 - The Yes/No column F gate for controlling which rows are imported
 
 ### Known discrepancies vs the code
-- **File path vs folder path:** The instructions describe pasting a single file path; the code in `B1_Importer` reads a folder path and processes every `.xls*` file in it. The instructions likely describe an older or simpler version of the tool.
-- **Live/Test toggle:** Not mentioned in the instructions at all. It exists in the code and is a significant operational control — users following the instructions alone would not know to check it. This mechanic will be carried forward into the new tools.
-- **Project ID:** Instructions note it should be confirmed but don't explain that it is essentially fixed for a given tool instance.
-- **Already-imported row detection:** Instructions treat this as a manual judgement call; the code does substantial work to assist (case code note matching, response comparison) but this isn't surfaced in the step-by-step guidance.
+- **File path vs folder path:** Instructions describe pasting a single file path; the code reads a folder path and processes every `.xls*` file in it
+- **Live/Test toggle:** Not mentioned in the instructions at all — a significant operational control users following the instructions alone would not know to check
+- **Project ID:** Instructions note it should be confirmed but don't explain it is essentially fixed per tool instance
+- **Already-imported row detection:** Instructions treat this as a manual judgement call; the code does substantial automated work to assist
