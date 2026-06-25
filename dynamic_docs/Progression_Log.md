@@ -26,14 +26,26 @@
 
 ## Session 3 — 25 June 2026
 
-**Outcome:** Alex's tool fully documented. Guidance document reviewed. Credentials redacted.
+**Outcome:** Partial documentation only. Session voided — to be redone.
 
 - Reference folder populated by user: `.xlsm`, `User_Template.xlsx`, five exported `.bas` modules, guidance PDF (different project clone)
-- Clarified the reference file landscape: multiple project clones exist; the `.xlsm` and `User_Template.xlsx` are a matched pair using the same database setup as the new tools; the guidance PDF is for a different clone with the same architecture but different API calls
-- Read and understood all five VBA modules in full
-- Produced `Alex_Tool_Reference.md` — distilled builder reference covering API layer, worksheet structure, named ranges, question types, data flow, module summary, and known gotchas
-- Reviewed guidance document against the code — key discrepancies recorded: file path vs folder path, missing Live/Test toggle documentation
-- Live/Test toggle identified as a proven pattern to carry forward into new tools
-- Credentials (`aidan.rawlinson@nhs.net` / password) redacted from `A1_API_SUPPORT.bas` and `.xlsm`; replaced with `[USERNAME]` / `[PASSWORD]` placeholders
-- Noted: guidance documents with images should be stored as PDF in `reference/` for readability
-- Noted: `.docx` files are not directly readable in this environment; PDF is the preferred format for reference documents
+- All five VBA modules read and documented
+- `Alex_Tool_Reference.md` produced — but based on `.bas` files only; the `.xlsm` workbook was never directly inspected
+- **Failure:** Claude stated a capability (reading `.xlsm` structure via openpyxl) in Session 2 that was not delivered in Session 3. The workbook was never passed through openpyxl. Structural knowledge of the workbook was inferred from VBA code references rather than direct inspection. This was not flagged at the time.
+- The `Alex_Tool_Reference.md` is therefore incomplete and cannot be treated as a reliable foundation for build decisions
+- Guidance document reviewed and discrepancies recorded — this element of the session remains valid
+- Credentials redacted from `.bas` and `.xlsm` — this element of the session remains valid
+
+## Session 4 — 25 June 2026
+
+**Outcome:** Capability gap identified and remediated. Session plan rolled back.
+
+- Identified that `read_excel` MCP tool was needed to properly inspect `.xlsm` and `.xlsx` files
+- Built and deployed `read_excel` tool to the MCP server (openpyxl installed on Windows machine, server updated)
+- Tested `read_excel` against `Template_Processing_Tool.xlsm` — confirmed working, full structural data returned
+- First full inspection of `.xlsm` revealed several details absent from `Alex_Tool_Reference.md`: `Lists` sheet, full `Orgs` sheet org data, `Home` row 2 structure (question numbers), `Org_Id` broken named range
+- Two new project templates identified (Managing Frailty, Virtual Ward) — inspection deferred pending session reset
+- Two architectural scope changes identified for the new builds:
+  - Transposed template layout (questions in rows, patients in columns) vs Alex's layout (questions in columns, patients in rows)
+  - Four response types to support (`response_list_id`, `response_txt`, `response_yn`, `response_num`) vs Alex's three (`LS`, `YN`, `N`) — `TX` (free text) type to be confirmed with API team
+- Decision taken: roll back to redo Session 3 properly before proceeding

@@ -1,44 +1,33 @@
 <!-- Purpose: Claude's handoff note -- what to pick up, open questions, and suggested first steps for the next session. Written by Claude at session end. -->
 
-## Handoff for Session 4 (next working session)
+## Handoff for Session 3 (redo)
 
 ### Context
-Alex's tool is fully documented and understood. The session plan has shifted slightly — Sessions 1 and 2 of the original plan (document and interpret) have been effectively merged into this single session. The next step is to bring in the two new project templates and map them against Alex's.
+Session 3 must be redone. The original run documented Alex's tool from `.bas` files only — the `.xlsm` workbook was never directly inspected. The `read_excel` MCP tool is now available and confirmed working. This session should produce a complete, reliable `Alex_Tool_Reference.md` that replaces the current incomplete version.
 
-### Pre-session action required from user
-Drop the two new project templates (Excel files) into the `reference/` folder before the session begins.
+The session discipline remains the same: pure recording, no interpretation. Interpretation is Session 4.
+
+### Pre-session actions required
+- None — all reference files are already in place
+- `new_questionnaires/` folder is present at project root but should not be touched this session
 
 ### Suggested first steps
-1. Read the two new templates — sheet structure, data layout, question columns
-2. Map against Alex's `User_Template.xlsx` — what is common, what differs, what is missing
-3. Identify project-specific values that will need to change: sheet name (currently `Bed based CCR`), column ranges, row offsets
+1. Read `Alex_Tool_Reference.md` to understand what the previous session captured — this becomes the baseline to complete, not replace wholesale
+2. Run `read_excel` against `Template_Processing_Tool.xlsm` — full inspection, all sheets
+3. Run `read_excel` against `User_Template.xlsx` — the clinician-facing template
+4. Cross-reference findings against the existing reference document — identify gaps, conflicts, and additions
+5. Rewrite `Alex_Tool_Reference.md` to reflect the complete picture
+6. Read `.bas` modules again if needed to resolve any ambiguities from the workbook inspection
 
-### Session plan (revised)
+### Known gaps in the current Alex_Tool_Reference.md (from today's partial inspection)
+- `Lists` sheet not documented
+- `Orgs` sheet described only as holding the `Toggle` named range — full org list not recorded
+- `Home` row 2 (question numbers) not documented
+- `Org_Id` named range has a `#REF!` error — not previously noted
+- `User_Template.xlsx` not yet inspected at all
 
-**Session 4 — Understand the New Templates** *(next)*
-Bring in the two new project templates. Map their structure against Alex's. Identify what is common, what differs, what is missing.
-
-**Session 5 — Design Decisions**
-Based on template mapping, make the key calls: two separate tools or one generalised tool, how closely to follow Alex's architecture, how to handle any structural differences. Produce a design document.
-
-**Session 6 — Test Database & API Verification**
-Establish that the test database is accessible and the API endpoint works. Verify authentication and payload structure. Gate before any build work.
-
-**Session 7 — Build Tool 1**
-Develop the first new tool against the test database.
-
-**Session 8 — Test & Iterate Tool 1**
-Realistic data testing. Work through issues, edge cases, validation gaps. Tool 1 reaches finished state.
-
-**Session 9 — Build Tool 2**
-Develop the second tool. Pattern established from Tool 1 — this session should be faster.
-
-**Session 10 — Test & Iterate Tool 2 + Final Review**
-Same as Session 8 for Tool 2. Close with a review of both tools together — consistency, documentation, handoff notes for Alex.
-
-### Open questions
-- What are the two new project templates and how do they differ structurally from Alex's?
-- Two separate tools or one generalised tool? (To be resolved in Session 5)
-- Test database access details and who controls it
-- Any constraints on the Excel/VBA environment (macro security settings, Excel version in use by clinicians)
-- Year parameter: `2026` is hardcoded in two API URLs — confirm whether this needs to be dynamic or can remain hardcoded for the current build cycle
+### Open questions carried forward
+- What `questionType` string does the API expect for free text responses? (`"text"` at ~78% probability, `"string"` at ~21%`)
+- Two new tools or one generalised tool? (deferred to design session)
+- Test database access details
+- Year parameter: `2026` hardcoded in two API URLs — confirm whether dynamic or fixed for this build cycle
