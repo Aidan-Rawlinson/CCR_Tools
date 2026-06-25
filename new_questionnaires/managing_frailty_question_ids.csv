@@ -1,0 +1,39 @@
+display_sequence_B,question_id,group_name,question_text,question_type
+3,163663,Clinical Case Review,Age of patient,N1
+4,163664,Clinical Case Review,What are the patient's normal living arrangements?,LS
+5,163665,Clinical Case Review,How did the patient present for admission?,LS
+6,163666,Clinical Case Review,Has this patient had an emergency re-admission to the same setting?,LS
+7,163667,Clinical Case Review,Was the patient's mobility and function assessed on admission?,YN
+10,37101,Clinical Case Review,Falls,YN
+11,37102,Clinical Case Review,Malnutrition,YN
+12,37103,Clinical Case Review,Cognition,YN
+13,37104,Clinical Case Review,Dehydration,YN
+14,163669,Clinical Case Review,Has the patient been diagnosed with dementia?,LS
+15,163670,Clinical Case Review,If the patient has been diagnosed with dementia was the dementia diagnosis made before or during the patient's inpatient stay?,LS
+16,163671,Clinical Case Review,Has the patient received clinical frailty screening (CFS)?,YN
+17,163672,Clinical Case Review,If yes was frailty screening done prior to the patient's admission?,YN
+18,390734,Clinical Case Review,If the patient received clinical frailty screening what CFS score did the patient have?,LS
+19,163673,Clinical Case Review,Did the patient receive a National Early Warning Score (NEWS2)?,YN
+20,163674,Clinical Case Review,Did the patient receive a CGA?,YN
+21,163675,Clinical Case Review,At what point in the pathway was CGA first delivered to this patient?,LS
+23,163677,Clinical Case Review,Medical,YN
+24,163678,Clinical Case Review,Functional,YN
+25,163679,Clinical Case Review,Cognitive and Mood,YN
+26,163680,Clinical Case Review,Social,YN
+27,163681,Clinical Case Review,Environmental,YN
+28,163682,Clinical Case Review,Patient-centred goals,YN
+29,163683,Clinical Case Review,Advance Care Planning,YN
+30,163684,Clinical Case Review,MDT involvement and documented MDT discussion,YN
+31,163685,Clinical Case Review,Other,YN
+32,390735,Clinical Case Review,Was a 4AT delirium screening completed for this patient at any point during admission?,YN
+33,163687,Clinical Case Review,Does the patient have an advance care plan in place?,LS
+35,163689,Clinical Case Review,Was the patient's mobility and function assessed at discharge?,YN
+36,163690,Clinical Case Review,Did the patient experience a decline in mobility or function during their inpatient stay?,YN
+37,163691,Clinical Case Review,If the patient received frailty screening was the outcome added to their discharge summary?,YN
+38,163692,Clinical Case Review,What was the length of stay in days for this patient?,N1
+39,163693,Clinical Case Review,Did this patient continue to occupy a hospital bed during their admission despite meeting the medical criteria to be discharged?,YN
+40,163694,Clinical Case Review,If yes what was the primary reason why this patient was not discharged immediately after no longer meeting the criteria to reside?,LS
+41,163695,Clinical Case Review,If other or multiple reasons please describe,TX
+42,163696,Clinical Case Review,How many additional bed days in total did this patient remain in a hospital bed since the decision to discharge was made?,N1
+43,163697,Clinical Case Review,Where was this patient discharged to?,LS
+44,163698,Clinical Case Review,If other or if patient received multiple services please describe,TX

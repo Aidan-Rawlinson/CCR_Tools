@@ -90,3 +90,22 @@
 - Verified working via test file (`test_greeting.xlsx`) — all 13 operations confirmed functional
 - Static spec documents populated: `Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`
 - `Decisions.md` updated with all new decisions from this session
+
+## Session 6 — 25 June 2026
+
+**Outcome:** SSMS data retrieved and saved as CSVs. QIDs cross-referenced against both templates. Drop downs build ready to proceed.
+
+- QID data supplied for both projects and cross-referenced against questionnaire templates:
+  - Managing Frailty (Project 35): 42 questions — all matched; section header rows confirmed as expected skips; encoding artefacts (apostrophes) cleaned
+  - Virtual Ward (Project 68): 33 questions — all matched; section header rows confirmed as expected skips
+- Question IDs cleaned: `x` prefix and `-1` suffix stripped; stored as plain integers
+- List item ID data retrieved via SSMS query filtered to question IDs for both projects; cross-referenced against template drop-down values
+- `colour_reference` column dropped — blank throughout, no use in build
+- Data saved as four CSVs in `new_questionnaires/`:
+  - `managing_frailty_question_ids.csv`
+  - `managing_frailty_list_item_ids.csv`
+  - `virtual_ward_question_ids.csv`
+  - `virtual_ward_list_item_ids.csv`
+- Each project treated as fully independent — no cross-referencing of item IDs between projects
+- ⚠️ **Major flag identified:** Virtual Ward question `x62624-1` ("Referral date") is type `DT` — a date type not present in Alex's tool or Managing Frailty. Requires a new question type branch in the importer and orchestration modules, plus a date conversion function. API date format not yet confirmed. This is a blocking item for Session 8. Logged in Decisions.md and Next_Session.md.
+- Minor flag: `163666` (re-admission) — database values use capital W ("Within") vs template lowercase ("within"). Database is authoritative; Drop downs sheet will use database values. Users will correct orange cells per standard workflow.

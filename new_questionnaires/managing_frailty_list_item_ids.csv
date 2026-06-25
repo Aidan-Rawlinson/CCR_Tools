@@ -1,0 +1,59 @@
+item_id,item_name,display_sequence,question_id
+25966,Own home,1,163664
+25967,Residential home,2,163664
+25968,Nursing home,3,163664
+25969,Sheltered housing,4,163664
+25970,Unknown,5,163664
+25971,Other,6,163664
+25972,Healthcare professional decision,1,163665
+25973,Self referral,2,163665
+25974,Nursing home referral,3,163665
+25975,Sheltered housing referral,4,163665
+25976,Unknown,5,163665
+25977,Other,6,163665
+25978,No,1,163666
+25979,Yes - Within 7 days of last admission,2,163666
+25980,Yes - Within 30 days of last admission,3,163666
+25981,Mild,1,163669
+25982,Moderate or mid-stage,2,163669
+25983,Severe or late stage,3,163669
+25984,No diagnosis,4,163669
+25985,Before the inpatient stay,1,163670
+25986,During the inpatient stay,2,163670
+29190,1,1,390734
+29191,2,2,390734
+29192,3,3,390734
+29193,4,4,390734
+29194,5,5,390734
+29195,6,6,390734
+29196,7,7,390734
+29197,8,8,390734
+29198,9,9,390734
+25987,Emergency department,1,163675
+25988,SDEC,2,163675
+25989,Assessment unit,3,163675
+25990,Inpatient ward,4,163675
+25991,CGA not delivered,5,163675
+25992,Not known,6,163675
+25993,No,1,163687
+25994,Yes - completed this admission,2,163687
+25995,Yes - completed prior admission/community,3,163687
+25996,Not known,4,163687
+25997,Awaiting a medical decision/intervention (including writing the discharge summary),1,163694
+25998,Awaiting medicines to take home,2,163694
+25999,Awaiting transport,3,163694
+26000,Awaiting availability within transitional arrangements - in another bedded unit,4,163694
+26001,Awaiting availability within transitional arrangements - care package to support in normal place of residence,5,163694
+26002,Awaiting availability within transitional arrangements - equipment,6,163694
+26003,Other reason,7,163694
+26004,Multiple reasons,8,163694
+26005,Usual place of residence with no increased care needs,1,163697
+26006,Usual place of residence with increased care needs,2,163697
+26007,Intermediate care at home,3,163697
+26008,District nursing,4,163697
+29213,Community nursing,5,163697
+26009,Community therapies,6,163697
+26010,Residential home,7,163697
+26011,Nursing home,8,163697
+26012,Transitional arrangements,9,163697
+26013,Other,10,163697

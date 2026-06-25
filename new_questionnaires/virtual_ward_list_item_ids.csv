@@ -1,0 +1,105 @@
+item_id,item_name,display_sequence,question_id
+29214,Admitted to acute care,1,390861
+29215,Service user refused/declined,2,390861
+29216,No rehabilitation potential/no goals identified,3,390861
+29217,Lack of capacity/no bed available,4,390861
+29218,Assessment only,5,390861
+29219,Spontaneous recovery,6,390861
+29220,Palliative care,7,390861
+29221,Other (please specify),8,390861
+29222,Male,1,390863
+29223,Female,2,390863
+29224,Other gender identity,3,390863
+29225,Not known,4,390863
+29226,Acute hospital inpatient ward,1,390864
+29227,NHS 111,2,390864
+29228,NHS 999,3,390864
+29229,SDEC,4,390864
+29230,Outpatient department,5,390864
+29231,Emergency department,6,390864
+29232,GP / primary care,7,390864
+29233,Mental Health service,8,390864
+29234,Community health service,9,390864
+29235,Urgent Community Response,10,390864
+29236,Other,11,390864
+25704,Yes,1,151166
+25705,No,2,151166
+25706,Unknown,3,151166
+25707,Not relevant,4,151166
+12049,Tier 1,1,62635
+12050,Tier 2,2,62635
+12051,Tier 3,3,62635
+12052,Tier 4,4,62635
+12077,Tier 5,5,62635
+25708,Face to face only,1,151167
+25709,Non face to face only,2,151167
+25710,Remote monitoring only,3,151167
+25711,A combination,4,151167
+25712,Face to face visits,1,151168
+25713,Non face to face visits,2,151168
+25714,Remote monitoring,3,151168
+12032,White,1,62631
+12033,Asian/Asian British,2,62631
+12034,Black/Black British,3,62631
+12035,Mixed,4,62631
+12036,Other,5,62631
+12037,Unknown,6,62631
+12053,Yes - in a previous service,1,62638
+12054,Yes - in this service,2,62638
+12055,No,3,62638
+12056,NA,4,62638
+12057,Don't know,5,62638
+25715,1,1,151171
+25716,2,2,151171
+25717,3,3,151171
+25718,4,4,151171
+25719,5,5,151171
+25720,6,6,151171
+25721,7,7,151171
+25722,8,8,151171
+25723,9,9,151171
+25724,The Rockwood Clinical Frailty Scale is not used as an indication,10,151171
+25725,Yes - in a previous service,1,151172
+25726,Yes - in this service,2,151172
+25727,No,3,151172
+25728,NA,4,151172
+25729,Don't know,5,151172
+25730,Yes - in a previous service,1,151173
+25731,Yes - in this service,2,151173
+25732,No,3,151173
+25733,NA,4,151173
+25734,Don't know,5,151173
+25735,Yes - in a previous service,1,151174
+25736,Yes - in this service,2,151174
+25737,No,3,151174
+25738,NA,4,151174
+25739,Don't know,5,151174
+29237,Yes,1,390867
+29238,No,2,390867
+29239,NA,3,390867
+29240,Don't know,4,390867
+12058,Yes,1,62641
+12059,No,2,62641
+12060,Partially,3,62641
+12061,No goals set on admission,4,62641
+12062,Usual place of residence,1,62643
+12063,Temporary place of residence,2,62643
+12064,Care home,3,62643
+12065,Acute hospital,4,62643
+12066,Patient died,5,62643
+12067,Unknown,6,62643
+12068,Other,7,62643
+12069,Increase,1,62652
+12070,Decrease,2,62652
+12071,No change,3,62652
+12072,NA,4,62652
+25740,Care home,1,151175
+25741,Community nursing,2,151175
+25742,Palliative care,3,151175
+25743,Home care package,4,151175
+25744,GP,5,151175
+25745,Reablement/Discharge to assess,6,151175
+25746,Hospital admission,7,151175
+25747,Specialist teams,8,151175
+25748,Informal care,9,151175
+25749,Other,10,151175

@@ -1,0 +1,34 @@
+display_sequence_B,question_id,group_name,question_text,question_type
+2,62624,Referral,Referral date,DT
+3,62625,Referral,Will this patient be receiving your service?,YN
+5,62627,Referral,If they weren't taken on by your service were they referred to a different service?,YN
+6,390861,Referral,Reason for not being accepted,LS
+7,62629,Referral,If other please specify,TX
+2,390863,Patient Information,Gender,LS
+3,62631,Patient Information,Ethnicity,LS
+4,62632,Patient Information,Age of service user,N1
+5,390864,Patient Information,Where was the service user admitted from?,LS
+6,62634,Patient Information,If other please specify,TX
+7,151166,Patient Information,Did this service user avoid a hospital admission by being admitted to the service?,LS
+8,62635,Patient Information,Acuity score on admission,LS
+9,151167,Patient Information,What type of care did the patient receive on the service?,LS
+10,151168,Patient Information,If a combination was selected which type of care was the most frequently used?,LS
+11,151169,Patient Information,Was this patient identified as having a neurodevelopmental profile flag?,YN
+12,151170,Patient Information,Was this patient identified as having a diagnosed learning disability?,YN
+13,390865,Patient Information,Did this patient require unplanned escalation to acute hospital during their virtual ward episode?,YN
+2,62636,Care Planning,Does this service user have a care plan documented and agreed with the service user and/or carer?,YN
+3,62637,Care Planning,Has this service user's care plan been reviewed at least once per week by the MDT?,YN
+4,62638,Care Planning,Was this service user screened for frailty?,LS
+5,151171,Care Planning,If Yes and the Rockwood Clinical Frailty Scale was used what was their score?,LS
+6,151172,Care Planning,Did the patient receive a Comprehensive Geriatric Assessment (CGA)?,LS
+7,151173,Care Planning,Was the patient diagnosed with dementia?,LS
+8,151174,Care Planning,Did the patient receive a 4AT test for delirium?,LS
+9,390867,Care Planning,Did the patient receive a medication review?,LS
+2,62640,Discharge Information,What was the length of stay for this service user (days)?,N1
+3,62641,Discharge Information,Were the goals set on admission achieved?,LS
+4,62642,Discharge Information,How many days did the service user remain in the service after the decision to discharge was made?,N1
+5,62643,Discharge Information,Where was the service user discharged to?,LS
+6,62644,Discharge Information,If other please specify,TX
+7,62652,Discharge Information,Was there an increase/decrease/no change in the care package the patient was on prior to the service?,LS
+8,151175,Discharge Information,What service is involved in the care package of the patient?,LS
+9,151176,Discharge Information,If other please specify,TX

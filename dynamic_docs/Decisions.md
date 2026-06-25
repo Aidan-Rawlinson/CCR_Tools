@@ -57,3 +57,12 @@ Both the `reference/` folder (Alex's `.xlsm`, exported `.bas` modules, guidance 
 
 ### Alex's layout, structure, approach and formatting as the default
 All build decisions default to following Alex's tool. Deviations are made only where the new requirements make them unavoidable. This respects Alex's work, keeps the tools feeling like a coherent family, and reduces the interpretive burden on the builder.
+
+### ⚠️ DT (date) question type identified — requires new handling (Virtual Ward, x62624-1)
+The Virtual Ward questionnaire (Project 68) contains one question of type `DT`: "Referral date" (question ID `x62624-1`). This question type does not exist in Alex's tool or in the Managing Frailty questionnaire. It represents a date field, stored as a `DD/MM/YYYY` string in the Excel template (column D of the CCR sheet shows "Narrative", meaning free text entry by the clinician).
+
+This introduces two requirements not present elsewhere in the build:
+1. **A new question type branch** in the importer and API post logic — `DT` must be handled alongside `LS`, `YN`, `N`, and `TX`.
+2. **A date conversion function** — the value entered in the template will be a date string (format `DD/MM/YYYY`, per the template guidance). Before posting to the API, this must be converted to whatever format the API expects. The correct API date format is **not yet confirmed** and must be established with the API team before Session 8.
+
+This is a **MAJOR FLAG**. The `DT` type is unique to Virtual Ward in the current scope and was not anticipated in the original architecture. The conversion rule and API format must be agreed before the importer (`B1_Importer.bas`) and orchestration (`A3_API_Calls.bas`) modules are written. Do not begin Session 8 without this resolved.
