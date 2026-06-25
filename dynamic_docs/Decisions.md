@@ -69,7 +69,27 @@ The new questionnaires introduce two question types not present in Alex's tool:
 - **If the cell value is not numeric (text, empty, or anything else):** flag to the user via the standard orange cell convention.
 - **If the cell value is numeric but outside the valid date range:** also flag orange.
 
-The API expects dates in `YYYY-MM-DD HH:mm:ss.000` format, confirmed by inspecting the date column format in SSMS (value: `1900-01-01 17:17:00.000`). The `questionType` string for DT in the API payload is still to be confirmed — this is the only remaining open item for the DT implementation.
+The API expects dates in `YYYY-MM-DD HH:mm:ss.000` format, confirmed by inspecting the date column format in SSMS (value: `1900-01-01 17:17:00.000` format). The `questionType` string for DT in the API payload is still to be confirmed — this is the only remaining open item for the DT implementation.
 
 ### Folder boundary: code_base/ vs environment/
 `code_base/` holds all build artefacts — `.xlsx` workbook files and `.bas` VBA modules. `environment/` holds Git infrastructure only — `git_push.py`, `git_revert.py`, `git_log.txt`. Nothing else belongs in `environment/`. Scratch and test files do not belong in either folder and should be deleted once their purpose is served.
+
+### No hardcoded row or column references in VBA
+All positional references in the VBA codebase use named ranges exclusively. This decouples the code from the physical layout of the workbook — cells and ranges can be moved without touching the VBA, provided named ranges are updated accordingly.
+
+### StartCols as the single source of truth for source template positions
+The `StartCols` named range (Home row 4, J:X) holds the row or column number in the source template for every field — including the unique reference (J4) and all questions (K4 onwards). The importer reads these values to know where to find each piece of data in the submitted file. Unique reference and questions are treated identically — no special-casing.
+
+### Alex's case code flow left untouched
+The case code creation, posting, and closing sequence in `A3_API_Calls` is carried forward from Alex's tool without modification. It is proven in production. Changes are made only where necessary (named range refs, question type additions). The flow itself is not touched until it has been proven to fail.
+
+### Validation parked as a separate module and session
+Three categories of validation are deliberately excluded from the current codebase:
+1. File validation (does the submitted file match expectations)
+2. Response validation (`ResponseValidator` — orange cell colouring for invalid responses)
+3. Database comparison (`CaseCodeProcessed`, `QuestionResponseMatcher` — duplicate detection and green/orange cell colouring)
+
+All three will be addressed in a dedicated validation session. Keeping them separate allows the core import and post flow to be built and tested independently.
+
+### Build phases: Home sheet population is a separate activity
+Populating the Home sheet metadata rows (question numbers, type codes, source positions, QIDs, column headers) for each project instance is a build-time activity, not part of the tool's runtime functionality. This work is scoped to Sessions 11 and 12 when the Managing Frailty and Virtual Ward instances are configured.

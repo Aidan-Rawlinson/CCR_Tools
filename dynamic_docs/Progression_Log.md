@@ -145,3 +145,24 @@
   - `managing_frailty_dropdowns.xlsx` and `virtual_ward_dropdowns.xlsx` moved from `environment/` to `code_base/`
   - `code_base/` now contains all three build artefacts
 - `write_excel` tool behaviour noted: `create_workbook` must be the first operation in every call (tool does not load existing files); default sheet is named `Sheet1` not `Sheet`
+
+## Session 9 — 25 June 2026
+
+**Outcome:** All five VBA modules written. `CCR_Tool_Base.xlsx` extended with new Config rows and Home metadata structure.
+
+- Test database access gate resolved — toggle mechanism confirmed to route all API calls via `Toggle` named range; `Test` environment confirmed as default
+- All five `.bas` modules written to `code_base/`:
+  - `A1_API_SUPPORT.bas` — VBA-JSON library and UTC utilities carried forward from Alex unchanged; `GetToken()` updated to read credentials from `APIUsername`/`APIPassword` named ranges on Config
+  - `A2_API_FUNCTIONS.bas` — all six API functions carried forward; `Toggle` sheet reference updated from `Orgs` to Config named range; hardcoded year replaced with `SubmissionYear` named range; `GetToken()` reference stays in A1
+  - `A3_API_Calls.bas` — `PostSurveyData` loop updated: `FullDataArea` named range replaces hardcoded row/column references; `TypeCols` named range replaces `Offset(-1,0)` type code lookup; QID read directly from `QuestionCols` cell value; `TX` and `DT` question type cases added; `ServiceID`/`ProjectID` read from Config named ranges; `YN` blank check simplified
+  - `B1_Importer.bas` — full rewrite of `FileImporter`; orientation-aware (`Columns`/`Rows`); reads all source positions from `StartCols` named range; `FullDataArea` cleared before import; file existence and sheet name validated before opening; `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator` deliberately excluded — parked for validation module session
+  - `B2_Toggle.bas` — `Toggle` sheet reference updated to Config named range; dead code removed
+- `CCR_Tool_Base.xlsx` extended (by user in Excel, verified by Claude):
+  - Config rows 12–13 added: `DataStart` and `DataMax` with named ranges and guidance notes in column C
+  - Home metadata structure extended: row 4 (`StartCols`) added for source row/column positions; J4 populated with unique ref position (5); K4–X4 populated with placeholder question positions; `TypeCols`, `StartCols`, `QuestionCols` named ranges cover rows 3–5 from J:X; `DataArea` (J7:X19408) and `FullDataArea` (F7:X19408) named ranges cover the data table
+- Approach decisions made this session:
+  - No hardcoded row/column references anywhere in VBA — all positions via named ranges
+  - `StartCols` is the single source of truth for source template positions — unique ref and all questions treated identically
+  - Alex's case code flow left entirely untouched
+  - Validation (file validation, response validation, `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator`) parked as a separate module and session
+  - Build phases clarified: Home sheet population (Sessions 11–12) is a separate build activity, not part of the tool's runtime functionality
