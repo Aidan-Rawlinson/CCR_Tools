@@ -23,3 +23,17 @@
 - Agreed reference folder structure for Alex's files and new project templates
 - Agreed to separate documentation and interpretation into discrete sessions
 - Produced a 9-session plan (see Next_Session)
+
+## Session 3 — 25 June 2026
+
+**Outcome:** Alex's tool fully documented. Guidance document reviewed. Credentials redacted.
+
+- Reference folder populated by user: `.xlsm`, `User_Template.xlsx`, five exported `.bas` modules, guidance PDF (different project clone)
+- Clarified the reference file landscape: multiple project clones exist; the `.xlsm` and `User_Template.xlsx` are a matched pair using the same database setup as the new tools; the guidance PDF is for a different clone with the same architecture but different API calls
+- Read and understood all five VBA modules in full
+- Produced `Alex_Tool_Reference.md` — distilled builder reference covering API layer, worksheet structure, named ranges, question types, data flow, module summary, and known gotchas
+- Reviewed guidance document against the code — key discrepancies recorded: file path vs folder path, missing Live/Test toggle documentation
+- Live/Test toggle identified as a proven pattern to carry forward into new tools
+- Credentials (`aidan.rawlinson@nhs.net` / password) redacted from `A1_API_SUPPORT.bas` and `.xlsm`; replaced with `[USERNAME]` / `[PASSWORD]` placeholders
+- Noted: guidance documents with images should be stored as PDF in `reference/` for readability
+- Noted: `.docx` files are not directly readable in this environment; PDF is the preferred format for reference documents

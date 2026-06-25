@@ -21,3 +21,12 @@ Alex's user instructions are a valuable source of intent and user experience con
 
 ### Test database as a non-negotiable gate
 No real data will touch the tool until it has been verified against the test database. Test database access and API endpoint verification is a discrete session (Session 5) that gates all build work.
+
+### Credentials to be supplied via input sheet
+Credentials will not be hardcoded in new tools. A dedicated input sheet in the Excel workbook will hold username and password, following the same pattern as the `Orgs` sheet holds the toggle. This avoids plaintext credentials in committed code.
+
+### Reference documents to be stored as PDF
+Guidance documents with images should be converted to PDF before being dropped into `reference/`. `.docx` files are not directly readable in this environment; PDF is the preferred format for any reference document that needs to be read in future sessions.
+
+### Live/Test toggle pattern carried forward
+Alex's Live/Test toggle mechanic — a named range on a hidden sheet, controlled by a shape button — is a proven pattern that solves a real operational need. It will be replicated in the new tools without modification.
