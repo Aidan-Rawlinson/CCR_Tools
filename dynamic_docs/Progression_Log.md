@@ -119,10 +119,29 @@
   - DT (date) fully designed: input is Excel date serial number; validate range 1 June–31 August 2026; convert to `YYYY-MM-DD 00:00:00.000`; non-numeric or out-of-range → orange cell. API format confirmed by inspecting SSMS date column (`1900-01-01 17:17:00.000` format). API `questionType` string for DT still to be confirmed.
   - All blocking items on DT cleared except API `questionType` string.
 - Drop downs sheets built from SSMS CSVs:
-  - `environment/managing_frailty_dropdowns.xlsx` — 10 LS questions, columns A–T, verified correct
-  - `environment/virtual_ward_dropdowns.xlsx` — 18 LS questions, columns A–AJ, verified correct
+  - `managing_frailty_dropdowns.xlsx` — 10 LS questions, columns A–T, verified correct
+  - `virtual_ward_dropdowns.xlsx` — 18 LS questions, columns A–AJ, verified correct
 - Both sheets formatted consistently:
   - Row 1 (QIDs): dark navy background (`2E3A87`), bold
   - Row 2 (question labels): grey-blue background (`BFC9E0`), bold
   - Data rows: alternating light blue (`EEF1F8`) / white column pairs — odd-numbered questions coloured, even-numbered white
 - `write_excel` tool behaviour noted: formatting operations require data and formatting to be written in a single operation chain (tool does not open existing files for modification)
+
+## Session 8 — 25 June 2026
+
+**Outcome:** Base workbook built. Folder structure cleaned up. `code_base/` established as the home for all build artefacts.
+
+- `CCR_Tool_Base.xlsx` built in `code_base/` using `write_excel` MCP tool:
+  - Five sheets: Home, Config, Orgs, Drop downs, Lists (hidden)
+  - Home: column headers in row 5 (F–J), column widths set
+  - Config: all 9 rows populated with labels and defaults; data validation drop-downs on Toggle (Test/Live) and Orientation (Columns/Rows)
+  - All 9 named ranges defined and verified: ProjectID, ServiceID, SubmissionYear, DataSheetName, Toggle, Orientation, SubmissionFilePath, APIUsername, APIPassword
+  - QuestionCols and DropDownQs deliberately excluded — instance-specific, to be defined per tool in Sessions 12–13
+  - Orgs: header row only; org data instance-specific
+  - Drop downs: structure note in A1; data to be copied from instance-specific sheets at build time
+  - Lists: Toggle and Orientation source lists in place
+- Folder structure rationalised:
+  - `environment/` — confirmed as Git infrastructure only; two scratch files (`format_test.xlsx`, `test_sheet.xlsx`) deleted
+  - `managing_frailty_dropdowns.xlsx` and `virtual_ward_dropdowns.xlsx` moved from `environment/` to `code_base/`
+  - `code_base/` now contains all three build artefacts
+- `write_excel` tool behaviour noted: `create_workbook` must be the first operation in every call (tool does not load existing files); default sheet is named `Sheet1` not `Sheet`

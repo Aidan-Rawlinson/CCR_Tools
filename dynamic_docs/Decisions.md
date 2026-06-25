@@ -70,3 +70,6 @@ The new questionnaires introduce two question types not present in Alex's tool:
 - **If the cell value is numeric but outside the valid date range:** also flag orange.
 
 The API expects dates in `YYYY-MM-DD HH:mm:ss.000` format, confirmed by inspecting the date column format in SSMS (value: `1900-01-01 17:17:00.000`). The `questionType` string for DT in the API payload is still to be confirmed — this is the only remaining open item for the DT implementation.
+
+### Folder boundary: code_base/ vs environment/
+`code_base/` holds all build artefacts — `.xlsx` workbook files and `.bas` VBA modules. `environment/` holds Git infrastructure only — `git_push.py`, `git_revert.py`, `git_log.txt`. Nothing else belongs in `environment/`. Scratch and test files do not belong in either folder and should be deleted once their purpose is served.
