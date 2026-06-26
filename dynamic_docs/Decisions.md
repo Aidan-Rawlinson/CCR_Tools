@@ -74,6 +74,9 @@ The API expects dates in `YYYY-MM-DD HH:mm:ss.000` format, confirmed by inspecti
 ### Folder boundary: code_base/ vs environment/
 `code_base/` holds all build artefacts — `.xlsx` workbook files and `.bas` VBA modules. `environment/` holds Git infrastructure only — `git_push.py`, `git_revert.py`, `git_log.txt`. Nothing else belongs in `environment/`. Scratch and test files do not belong in either folder and should be deleted once their purpose is served.
 
+### test_inputs/ gitignored
+The `test_inputs/` folder holds local working files used for testing — valid and deliberately broken template files. It is gitignored and not committed to the repository. These files are not build artefacts and may contain real-looking data that should not be version-controlled.
+
 ### No hardcoded row or column references in VBA
 All positional references in the VBA codebase use named ranges exclusively. This decouples the code from the physical layout of the workbook — cells and ranges can be moved without touching the VBA, provided named ranges are updated accordingly.
 
@@ -115,7 +118,7 @@ Alex's formatting conventions have been reverse-engineered from `Template_Proces
 The `SubmissionFilePath` named range and Config sheet label have been renamed to `SubmissionFolderPath`. The cell holds the folder path of the last-used file picker location. `B1_Importer.bas` still references the old name and will be updated in Session D.
 
 ### B1_Importer to accept parameters, not named ranges
-`FileImporter` will be updated to accept file path and submission ID as parameters passed by `B4_Process_Folder`. It will no longer read `SubmissionFolderPath` from the Config named range. All validation logic will be removed — file validation is B5's responsibility, and by the time B1 is called the file has already been validated and matched.
+`FileImporter` accepts file path and submission ID as parameters passed by `B4_Process_Folder`. It does not read `SubmissionFolderPath` from the Config named range. All validation logic has been removed — file validation is B5's responsibility, and by the time B1 is called the file has already been validated and matched. Updated in Session D.
 
 ### Separation of response validation and duplicate detection into distinct modules
 Response validation (orange cell colouring) and duplicate detection (green cell colouring) are separate concerns and are implemented in separate modules:

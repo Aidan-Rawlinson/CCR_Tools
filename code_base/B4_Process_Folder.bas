@@ -1,8 +1,8 @@
-Attribute VB_Name = "Process_Folder"
+Attribute VB_Name = "B4_Process_Folder"
 Option Explicit
 
 ' ============================================================
-' Process_Folder
+' B4_Process_Folder
 ' ------------------------------------------------------------
 ' Presents a multi-select file picker to the user, saves the
 ' folder of the first selected file back to SubmissionFolderPath,
@@ -13,18 +13,34 @@ Option Explicit
 '     → Read org name and submission descriptor via XLookup on Support sheet
 '     → Close file
 '     → Org/submission matching decision tree
-'     → ProcessValidFile (stub -- to be replaced in Session D)
+'     → B1: FileImporter (file path + submission ID passed as parameters)
 '
 ' Matching decision tree:
 '   Case 1 - No org match:       message + skip, no user choice
 '   Case 2 - One submission:     Yes/No confirmation before process
 '   Case 3 - Multiple subs:      numbered InputBox + confirmation before process
+'
+' Clear prompt at start of run gives user the option to start
+' fresh or append to existing Home sheet data.
 ' ============================================================
 
 Sub PickAndProcess()
 
+    Dim Wsh_Home As Worksheet:          Set Wsh_Home = ThisWorkbook.Worksheets("Home")
     Dim Wsh_Orgs As Worksheet:          Set Wsh_Orgs = ThisWorkbook.Worksheets("Orgs")
     Dim Rng_FolderPath As Range:        Set Rng_FolderPath = ThisWorkbook.Names("SubmissionFolderPath").RefersToRange
+    Dim Rng_FullDataArea As Range:      Set Rng_FullDataArea = ThisWorkbook.Names("FullDataArea").RefersToRange
+
+    '--Prompt user: clear existing Home sheet data or append?
+    Dim Int_ClearChoice As Integer
+    Int_ClearChoice = MsgBox("Do you want to clear existing data from the Home sheet before processing?" & vbCrLf & vbCrLf & _
+                             "Click Yes to start with a clean slate." & vbCrLf & _
+                             "Click No to append imported rows to existing data.", _
+                             vbQuestion + vbYesNo, "Clear Existing Data?")
+
+    If Int_ClearChoice = vbYes Then
+        Rng_FullDataArea.ClearContents
+    End If
 
     '--Build initial folder for dialog
     Dim Str_StartFolder As String
@@ -86,7 +102,7 @@ Sub PickAndProcess()
         End If
 
         '--B5: Validate file structure and content
-        If Not File_Validator.ValidateFile(Wbk_Source, Str_FileName) Then
+        If Not B5_File_Validator.ValidateFile(Wbk_Source, Str_FileName) Then
             Wbk_Source.Close SaveChanges:=False
             Set Wbk_Source = Nothing
             Int_Skipped = Int_Skipped + 1
@@ -169,7 +185,7 @@ Sub PickAndProcess()
             Str_Msg2 = Str_Msg2 & vbCrLf & vbCrLf & "Proceed with import?"
 
             If MsgBox(Str_Msg2, vbQuestion + vbYesNo, "Confirm Submission") = vbYes Then
-                Call ProcessValidFile(Str_FilePath, Lng_SubID2)
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2)
                 Int_Processed = Int_Processed + 1
             Else
                 Int_Skipped = Int_Skipped + 1
@@ -216,7 +232,7 @@ Sub PickAndProcess()
                        "Processing will now begin.", _
                        vbInformation, "Submission Matched"
 
-                Call ProcessValidFile(Str_FilePath, Lng_SubID3)
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3)
                 Int_Processed = Int_Processed + 1
 
             Else
@@ -244,25 +260,5 @@ NextFile:
            "Files processed:  " & Int_Processed & vbCrLf & _
            "Files skipped:    " & Int_Skipped, _
            vbInformation, "Run Complete"
-
-End Sub
-
-
-' ============================================================
-' ProcessValidFile  (stub)
-' ------------------------------------------------------------
-' Called once a file has passed validation and been matched
-' to a submission. To be replaced with real B1 call in Session D.
-' ============================================================
-
-Private Sub ProcessValidFile(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
-
-    Dim Str_FileName As String
-    Str_FileName = Mid(Str_FilePath, InStrRev(Str_FilePath, "\") + 1)
-
-    MsgBox "Valid file — matched to submission." & vbCrLf & vbCrLf & _
-           "File:          " & Str_FileName & vbCrLf & _
-           "Submission ID: " & Lng_SubmissionID, _
-           vbInformation, "Ready to Import"
 
 End Sub

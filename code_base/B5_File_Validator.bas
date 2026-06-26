@@ -1,8 +1,8 @@
-Attribute VB_Name = "File_Validator"
+Attribute VB_Name = "B5_File_Validator"
 Option Explicit
 
 ' ============================================================
-' File_Validator
+' B5_File_Validator
 ' ------------------------------------------------------------
 ' Validates a submitted questionnaire file before org/submission
 ' matching proceeds. Receives an already-open Workbook object

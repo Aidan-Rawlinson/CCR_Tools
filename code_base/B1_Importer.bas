@@ -1,12 +1,28 @@
 Attribute VB_Name = "B1_Importer"
 Option Explicit
 
-Sub FileImporter()
+' ============================================================
+' B1_Importer
+' ------------------------------------------------------------
+' Pure data transfer. Called by B4_Process_Folder once a file
+' has passed validation (B5) and been matched to a submission.
+'
+' Accepts file path and submission ID as parameters.
+' No validation logic -- B5 owns that.
+'
+' Finds the next empty row on the Home sheet and appends;
+' does not clear existing data (clearing is handled by B4
+' at the start of the process run).
+'
+' Hard fails if the first expected patient position is blank
+' (i.e. the file contains no patient data).
+' ============================================================
+
+Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
 
     Dim Wsh_Home As Worksheet:              Set Wsh_Home = ThisWorkbook.Worksheets("Home")
     Dim Wbk_Source As Workbook
     Dim Wsh_Source As Worksheet
-    Dim Str_FilePath As String:             Str_FilePath = ThisWorkbook.Names("SubmissionFilePath").RefersToRange.Value
     Dim Str_SheetName As String:            Str_SheetName = ThisWorkbook.Names("DataSheetName").RefersToRange.Value
     Dim Str_Orientation As String:          Str_Orientation = ThisWorkbook.Names("Orientation").RefersToRange.Value
     Dim Str_DataStart As String:            Str_DataStart = ThisWorkbook.Names("DataStart").RefersToRange.Value
@@ -14,43 +30,28 @@ Sub FileImporter()
     Dim Rng_QuestionCols As Range:          Set Rng_QuestionCols = ThisWorkbook.Names("QuestionCols").RefersToRange
     Dim Rng_StartCols As Range:             Set Rng_StartCols = ThisWorkbook.Names("StartCols").RefersToRange
     Dim Rng_DataArea As Range:              Set Rng_DataArea = ThisWorkbook.Names("DataArea").RefersToRange
-    Dim Rng_FullDataArea As Range:          Set Rng_FullDataArea = ThisWorkbook.Names("FullDataArea").RefersToRange
     Dim Rng_Cell As Range
-    Dim Lng_PasteRow As Long:               Lng_PasteRow = Rng_DataArea.Row
     Dim Lng_Record As Long
     Dim Lng_StartIndex As Long
     Dim Lng_Position As Long
     Dim Str_UniqueRef As String
     Dim Lng_ColIndex As Long
+    Dim Str_FileName As String:             Str_FileName = Mid(Str_FilePath, InStrRev(Str_FilePath, "\") + 1)
 
-    '--Validate file path
-    If Str_FilePath = "" Then
-        MsgBox "Please enter a file path in the Submission File Path field on the Config sheet.", vbExclamation, "No File Path"
-        Exit Sub
+    '--Find next empty paste row on Home sheet (append mode)
+    Dim Lng_PasteRow As Long
+    Lng_PasteRow = Wsh_Home.Cells(Wsh_Home.Rows.Count, Rng_DataArea.Column).End(xlUp).Row
+    If Lng_PasteRow < Rng_DataArea.Row Then
+        Lng_PasteRow = Rng_DataArea.Row
+    Else
+        Lng_PasteRow = Lng_PasteRow + 1
     End If
-
-    If Dir(Str_FilePath) = "" Then
-        MsgBox "The file at the specified path could not be found. Please check the Submission File Path on the Config sheet.", vbExclamation, "File Not Found"
-        Exit Sub
-    End If
-
-    '--Clear previous data
-    Rng_FullDataArea.ClearContents
 
     '--Open source file
-    Set Wbk_Source = Workbooks.Open(Str_FilePath)
+    Set Wbk_Source = Workbooks.Open(Str_FilePath, ReadOnly:=True)
     DoEvents
 
-    '--Check data sheet exists
-    On Error Resume Next
     Set Wsh_Source = Wbk_Source.Worksheets(Str_SheetName)
-    On Error GoTo 0
-
-    If Wsh_Source Is Nothing Then
-        MsgBox "The sheet '" & Str_SheetName & "' could not be found in the submitted file. Please check the Data Sheet Name on the Config sheet.", vbCritical, "Sheet Not Found"
-        Wbk_Source.Close SaveChanges:=False
-        Exit Sub
-    End If
 
     '--Import records
     If Str_Orientation = "Columns" Then
@@ -59,14 +60,28 @@ Sub FileImporter()
         '--DataStart is a column letter; StartCols holds the source row number for each field
         Lng_StartIndex = Range(Str_DataStart & "1").Column
 
+        '--Empty file check: probe unique reference cell of first expected patient
+        '--Note: this check looks at the first patient position only
+        If Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_StartIndex).Value = "" Then
+            MsgBox "No patient data was found in this file." & vbCrLf & vbCrLf & _
+                   "File: " & Str_FileName & vbCrLf & vbCrLf & _
+                   "This check looks at the first expected patient position only. " & _
+                   "If the file structure has changed, please review manually." & vbCrLf & vbCrLf & _
+                   "File will be skipped.", _
+                   vbExclamation, "No Patient Data"
+            Wbk_Source.Close SaveChanges:=False
+            Exit Sub
+        End If
+
         For Lng_Record = Lng_StartIndex To Lng_StartIndex + Lng_DataMax - 1
 
-            '--Read unique reference using the row number stored in StartCols(J)
+            '--Read unique reference using the row number stored in StartCols(1)
             Str_UniqueRef = Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_Record).Value
 
             If Str_UniqueRef <> "" Then
 
-                '--Write unique reference to column J on Home
+                '--Write submission ID to column H and unique reference to column J on Home
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef
 
                 '--Write question responses using StartCols to find source row for each question
@@ -93,14 +108,28 @@ Sub FileImporter()
         '--DataStart is a row number; StartCols holds the source column number for each field
         Lng_StartIndex = CLng(Str_DataStart)
 
+        '--Empty file check: probe unique reference cell of first expected patient
+        '--Note: this check looks at the first patient position only
+        If Wsh_Source.Cells(Lng_StartIndex, Rng_StartCols.Cells(1, 1).Value).Value = "" Then
+            MsgBox "No patient data was found in this file." & vbCrLf & vbCrLf & _
+                   "File: " & Str_FileName & vbCrLf & vbCrLf & _
+                   "This check looks at the first expected patient position only. " & _
+                   "If the file structure has changed, please review manually." & vbCrLf & vbCrLf & _
+                   "File will be skipped.", _
+                   vbExclamation, "No Patient Data"
+            Wbk_Source.Close SaveChanges:=False
+            Exit Sub
+        End If
+
         For Lng_Record = Lng_StartIndex To Lng_StartIndex + Lng_DataMax - 1
 
-            '--Read unique reference using the column number stored in StartCols(J)
+            '--Read unique reference using the column number stored in StartCols(1)
             Str_UniqueRef = Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, 1).Value).Value
 
             If Str_UniqueRef <> "" Then
 
-                '--Write unique reference to column J on Home
+                '--Write submission ID to column H and unique reference to column J on Home
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef
 
                 '--Write question responses using StartCols to find source column for each question
@@ -121,15 +150,9 @@ Sub FileImporter()
 
         Next Lng_Record
 
-    Else
-        MsgBox "Orientation value '" & Str_Orientation & "' is not recognised. Expected 'Columns' or 'Rows'.", vbCritical, "Invalid Orientation"
-        Wbk_Source.Close SaveChanges:=False
-        Exit Sub
     End If
 
     '--Close source file
     Wbk_Source.Close SaveChanges:=False
-
-    MsgBox "Import complete.", vbInformation, "Import Complete"
 
 End Sub

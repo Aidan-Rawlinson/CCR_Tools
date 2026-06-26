@@ -233,3 +233,25 @@
 - **Constraint confirmed:** openpyxl drops Form Controls on save — `.xlsm` must never be passed through `write_excel` once buttons are present; all future workbook changes applied directly in Excel by user
 - All `.bas` modules reimported by user; buttons reinstated
 - Modules to reimport in Session D: `B1_Importer.bas`, `B4_Process_Folder.bas`
+
+## Session D — 26 June 2026
+
+**Outcome:** B1 updated and wired. Full pipeline confirmed working end-to-end. Module naming bug identified and fixed.
+
+- `B1_Importer.bas` updated:
+  - Now accepts `(Str_FilePath As String, Lng_SubmissionID As Long)` as parameters
+  - `SubmissionFilePath` named range read removed
+  - File path validation and sheet existence check removed (B5 owns these)
+  - `FullDataArea.ClearContents` removed (moved to B4 at start of run)
+  - Orientation `Else` guard removed
+  - Paste row found dynamically — appends below last occupied row in column J
+  - Submission ID written to column H on each imported row
+  - Empty file check added after `Lng_StartIndex` resolved, before loop, for both orientations — probes first expected patient position; hard fail with explanatory MsgBox if blank
+  - No end-of-run MsgBox — B4's summary covers that
+- `B4_Process_Folder.bas` updated:
+  - Clear prompt added at very top of `PickAndProcess` — Yes to clear `FullDataArea`, No to append
+  - `ProcessValidFile` stub replaced with `Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID)`
+- **Module naming bug fixed:** both `B4_Process_Folder.bas` and `B5_File_Validator.bas` had incorrect `Attribute VB_Name` values (`"Process_Folder"` and `"File_Validator"` respectively). Both corrected to match their filenames. Cross-reference in B4 (`File_Validator.ValidateFile`) updated to `B5_File_Validator.ValidateFile`.
+- All four modules (`B1`, `B4`, `B5` updated; `B5` name fix only) reimported by user
+- Happy path confirmed working: file passes validation, matches to submission, rows imported correctly to Home sheet
+- Representative failure cases confirmed: wrong project ID, missing sheet, failed spot check all produce correct MsgBox messages and skip correctly
