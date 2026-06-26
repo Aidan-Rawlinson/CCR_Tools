@@ -1,4 +1,4 @@
-<!-- Purpose: A session-by-session history of what was built and what was decided. The project record. Authored by Claude at session end. -->
+<!-- Purpose: Session-by-session history of what was built and what was decided. The project record. Authored by Claude at session end. -->
 
 ## Session 1 — 24 June 2026
 
@@ -141,51 +141,37 @@
   - Drop downs: structure note in A1; data to be copied from instance-specific sheets at build time
   - Lists: Toggle and Orientation source lists in place
 - Folder structure rationalised:
-  - `environment/` — confirmed as Git infrastructure only; two scratch files (`format_test.xlsx`, `test_sheet.xlsx`) deleted
-  - `managing_frailty_dropdowns.xlsx` and `virtual_ward_dropdowns.xlsx` moved from `environment/` to `code_base/`
-  - `code_base/` now contains all three build artefacts
-- `write_excel` tool behaviour noted: `create_workbook` must be the first operation in every call (tool does not load existing files); default sheet is named `Sheet1` not `Sheet`
+  - `environment/` — confirmed as Git infrastructure only; two scratch files deleted
+  - `managing_frailty_dropdowns.xlsx` and `virtual_ward_dropdowns.xlsx` moved to `code_base/`
+- `write_excel` tool behaviour noted: `create_workbook` must be the first operation in every call
 
 ## Session 9 — 25 June 2026
 
 **Outcome:** All five VBA modules written. `CCR_Tool_Base.xlsx` extended with new Config rows and Home metadata structure.
 
-- Test database access gate resolved — toggle mechanism confirmed to route all API calls via `Toggle` named range; `Test` environment confirmed as default
-- All five `.bas` modules written to `code_base/`:
-  - `A1_API_SUPPORT.bas` — VBA-JSON library and UTC utilities carried forward from Alex unchanged; `GetToken()` updated to read credentials from `APIUsername`/`APIPassword` named ranges on Config
-  - `A2_API_FUNCTIONS.bas` — all six API functions carried forward; `Toggle` sheet reference updated from `Orgs` to Config named range; hardcoded year replaced with `SubmissionYear` named range; `GetToken()` reference stays in A1
-  - `A3_API_Calls.bas` — `PostSurveyData` loop updated: `FullDataArea` named range replaces hardcoded row/column references; `TypeCols` named range replaces `Offset(-1,0)` type code lookup; QID read directly from `QuestionCols` cell value; `TX` and `DT` question type cases added; `ServiceID`/`ProjectID` read from Config named ranges; `YN` blank check simplified
-  - `B1_Importer.bas` — full rewrite of `FileImporter`; orientation-aware (`Columns`/`Rows`); reads all source positions from `StartCols` named range; `FullDataArea` cleared before import; file existence and sheet name validated before opening; `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator` deliberately excluded — parked for validation module session
-  - `B2_Toggle.bas` — `Toggle` sheet reference updated to Config named range; dead code removed
-- `CCR_Tool_Base.xlsx` extended (by user in Excel, verified by Claude):
-  - Config rows 12–13 added: `DataStart` and `DataMax` with named ranges and guidance notes in column C
-  - Home metadata structure extended: row 4 (`StartCols`) added for source row/column positions; J4 populated with unique ref position (5); K4–X4 populated with placeholder question positions; `TypeCols`, `StartCols`, `QuestionCols` named ranges cover rows 3–5 from J:X; `DataArea` (J7:X19408) and `FullDataArea` (F7:X19408) named ranges cover the data table
-- Approach decisions made this session:
-  - No hardcoded row/column references anywhere in VBA — all positions via named ranges
-  - `StartCols` is the single source of truth for source template positions — unique ref and all questions treated identically
-  - Alex's case code flow left entirely untouched
-  - Validation (file validation, response validation, `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator`) parked as a separate module and session
-  - Build phases clarified: Home sheet population (tool instance sessions) is a separate build activity, not part of the tool's runtime functionality
+- All five `.bas` modules written to `code_base/`
+- `CCR_Tool_Base.xlsx` extended with Config rows 12–13 (`DataStart`, `DataMax`) and Home metadata row 4 (`StartCols`)
+- Named ranges: `TypeCols`, `StartCols`, `QuestionCols`, `DataArea`, `FullDataArea`
+- Key decisions: no hardcoded row/column references; `StartCols` as single source of truth; Alex's case code flow untouched; validation parked
 
 ## Session 10 — 26 June 2026
 
 **Outcome:** MCP server improved. Colour palette documented. Base workbook formatted. Input file flow redesigned.
 
-- MCP server (`server.py`) updated with three improvements:
-  - `read_excel`: now reads cell background colour (`background_colour` field, ARGB hex); now iterates all cells within the used range (capped at 100 rows) rather than only value-bearing cells — enabling colour reading on empty styled cells
-  - `write_excel`: now supports in-place editing of existing files (loads workbook if file exists and first op is not `create_workbook`); `set_background_colour` now prepends `FF` alpha for full opacity when 6-character RGB supplied; new `set_font_colour` operation added; `set_bold` updated to preserve existing font properties
-- Colour palette reverse-engineered from `Template_Processing_Tool.xlsm`:
-  - Five colours identified and documented in `dynamic_docs/Colour_Palette.md`
-  - Panel background `D3DAEE`, input cell `F9FAFA`, metadata yellow `FFFF00`, dark navy header `1F3864`, label grey `F2F2F2`
-  - Formatting rules derived: panel fills a contiguous block; input cells lift slightly off the panel; navy headers carry white bold text; metadata rows are yellow across full width; data rows carry no fill
-- `CCR_Tool_Base.xlsx` formatted to palette:
-  - Home: panel `B2:E15` in `D3DAEE`; header row `F6:X6` in `1F3864` with white bold text
-  - Config: header `A1:B1` in `1F3864` with white bold text; value cells `B2:B13` in `F9FAFA` (label cells `A2:A13` already `F2F2F2`)
-  - Orgs: header `A1:D1` in `1F3864` with white bold text
-- **Flow redesign decision:** the single-file-path import approach is being replaced. Review of Alex's code confirmed his tool cycles over a folder of files; his user guidance (our original reference) describes a different flow. We are aligning to his code, not his guidance. The new flow cycles over all files in a folder and supports the user in matching each file to the correct org and submission — automatically where confident, with user confirmation where not.
-- Session plan updated: three new sessions (A, B, C) replace the previously planned Session 10 end-to-end test:
-  - Session A: Write and test VBA to populate Orgs sheet from API
-  - Session B: Write and test folder-cycling importer with matching support
-  - Session C: Pause and update all static spec documents to reflect new flow
-- `B1_Importer.bas` flagged as requiring rework for new flow — treat as starting point
-- Static spec documents (`Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`) flagged as describing old flow — not to be relied upon until Session C
+- MCP server updated: colour reading in `read_excel`, in-place editing in `write_excel`, `set_font_colour` added, opacity fix
+- Colour palette documented in `Colour_Palette.md`; `CCR_Tool_Base.xlsx` formatted to palette
+- **Flow redesign:** single-file-path approach replaced with folder-cycling and semi-automated org/submission matching; aligns to Alex's actual code rather than his guidance document
+- Session plan updated: Sessions A, B, C replace previously planned Session 10 end-to-end test
+- `B1_Importer.bas` flagged for rework; static spec documents flagged as out of date
+
+## Session A — 26 June 2026
+
+**Outcome:** `B3_Submissions.bas` written and tested. Orgs sheet population working against test database.
+
+- `B3_Submissions.bas` written — new module, independent of existing modules
+- `PopulateSubmissions` public Sub: calls API, iterates submission list, writes Org ID / Org Name / Submission Name / Submission ID to Orgs sheet in one block operation
+- Reads `ProjectID`, `SubmissionYear`, `Toggle` from Config named ranges — no hardcoding
+- Uses `Submissions` named range to locate header row; data written immediately below; 10,000-row clear before write
+- `Option Private Module` identified as the cause of the macro not appearing in Excel's macro picker — removed
+- Tested against test database with Managing Frailty (Project ID 35): 25 submissions returned correctly, first time
+- No new architectural decisions — clean, self-contained deliverable
