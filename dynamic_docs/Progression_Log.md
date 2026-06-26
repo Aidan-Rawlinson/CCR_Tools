@@ -244,8 +244,8 @@
   - File path validation and sheet existence check removed (B5 owns these)
   - `FullDataArea.ClearContents` removed (moved to B4 at start of run)
   - Orientation `Else` guard removed
-  - Paste row found dynamically — appends below last occupied row in column J
-  - Submission ID written to column H on each imported row
+  - Paste row found dynamically — appends below last occupied row in column K (now J after column shift)
+  - Submission ID written to column I on each imported row
   - Empty file check added after `Lng_StartIndex` resolved, before loop, for both orientations — probes first expected patient position; hard fail with explanatory MsgBox if blank
   - No end-of-run MsgBox — B4's summary covers that
 - `B4_Process_Folder.bas` updated:
@@ -255,3 +255,22 @@
 - All four modules (`B1`, `B4`, `B5` updated; `B5` name fix only) reimported by user
 - Happy path confirmed working: file passes validation, matches to submission, rows imported correctly to Home sheet
 - Representative failure cases confirmed: wrong project ID, missing sheet, failed spot check all produce correct MsgBox messages and skip correctly
+
+## Session E — 26 June 2026
+
+**Outcome:** Workbook fully configured for Managing Frailty. Home sheet columns extended. B1 and B4 updated. Test files populated. Session ordering corrected.
+
+- **Base workbook reconfigured for Managing Frailty** (openpyxl rebuild from scratch — buttons and modules reinstated by user):
+  - Home rows 2–6 fully populated: 38 questions, display sequence numbers, type codes (N/LS/YN/TX), source template row positions, real QIDs, short question labels
+  - Named ranges `StartCols`, `QuestionCols`, `TypeCols`, `DataArea`, `FullDataArea` all extended from J:AV (was J:X)
+  - Drop downs sheet populated from `managing_frailty_dropdowns.xlsx` with correct palette: row 1 METADATA yellow, row 2 HEADER_DARK navy, data rows no fill
+  - Config credentials (B10/B11) cleared — previously contained plaintext credentials from earlier test session
+- **Home sheet columns extended:** "Organisation name" column added at G; "Submission name" column inserted at H; existing Sub ID, CaseCode, Unique Ref shifted to I, J, K respectively. Excel managed all named range shifts automatically.
+- **`B1_Importer.bas` updated:**
+  - Signature extended: `FileImporter(Str_FilePath, Lng_SubmissionID, Str_OrgName, Str_SubName)`
+  - Writes org name at `DataArea.Column - 4` (G), sub name at `DataArea.Column - 3` (H) on every imported row
+  - Empty-record skip logic reworked: old check on unique ref (always populated in template) replaced with has-data check iterating all question positions in `StartCols` (index 2+); `Exit For` on first non-blank hit; `Lng_ImportedCount` tracks records; warns if zero records imported across whole file
+- **`B4_Process_Folder.bas` updated:** both `FileImporter` call sites (Case 2 and Case 3) updated to pass `Str_OrgName` and the matched submission name
+- **Test input files populated** with synthetic valid patient data via `populate_test_files.py` (written to `test_inputs/` and run directly by user): files 1 & 2 = 50 patients each, files 3 & 4 = 10 patients each; conditional logic respects blank rules (e.g. dementia timing only populated if dementia diagnosed)
+- **Session ordering corrected:** B6_Response_Validator must precede the first live API test — invalid responses will cause the API post to fail. Session plan updated accordingly (was E=API test, F=B6; now F=B6, G=API test).
+- Both modules reimported by user; confirmed working end-to-end with correct org name, sub name, and patient count on import

@@ -13,7 +13,7 @@ Option Explicit
 '     → Read org name and submission descriptor via XLookup on Support sheet
 '     → Close file
 '     → Org/submission matching decision tree
-'     → B1: FileImporter (file path + submission ID passed as parameters)
+'     → B1: FileImporter (file path, submission ID, org name, sub name)
 '
 ' Matching decision tree:
 '   Case 1 - No org match:       message + skip, no user choice
@@ -185,7 +185,7 @@ Sub PickAndProcess()
             Str_Msg2 = Str_Msg2 & vbCrLf & vbCrLf & "Proceed with import?"
 
             If MsgBox(Str_Msg2, vbQuestion + vbYesNo, "Confirm Submission") = vbYes Then
-                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2)
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2, Str_OrgName, Str_SubName2)
                 Int_Processed = Int_Processed + 1
             Else
                 Int_Skipped = Int_Skipped + 1
@@ -232,7 +232,7 @@ Sub PickAndProcess()
                        "Processing will now begin.", _
                        vbInformation, "Submission Matched"
 
-                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3)
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3, Str_OrgName, Str_SubName3)
                 Int_Processed = Int_Processed + 1
 
             Else

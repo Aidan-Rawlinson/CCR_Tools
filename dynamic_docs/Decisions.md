@@ -81,7 +81,7 @@ The `test_inputs/` folder holds local working files used for testing — valid a
 All positional references in the VBA codebase use named ranges exclusively. This decouples the code from the physical layout of the workbook — cells and ranges can be moved without touching the VBA, provided named ranges are updated accordingly.
 
 ### StartCols as the single source of truth for source template positions
-The `StartCols` named range (Home row 4, J:X) holds the row or column number in the source template for every field — including the unique reference (J4) and all questions (K4 onwards). The importer reads these values to know where to find each piece of data in the submitted file. Unique reference and questions are treated identically — no special-casing.
+The `StartCols` named range (Home row 4, K onwards) holds the row or column number in the source template for every field — including the unique reference (K4) and all questions (L4 onwards). The importer reads these values to know where to find each piece of data in the submitted file. Unique reference and questions are treated identically — no special-casing.
 
 ### Alex's case code flow left untouched
 The case code creation, posting, and closing sequence in `A3_API_Calls` is carried forward from Alex's tool without modification. It is proven in production. Changes are made only where necessary (named range refs, question type additions). The flow itself is not touched until it has been proven to fail.
@@ -118,7 +118,7 @@ Alex's formatting conventions have been reverse-engineered from `Template_Proces
 The `SubmissionFilePath` named range and Config sheet label have been renamed to `SubmissionFolderPath`. The cell holds the folder path of the last-used file picker location. `B1_Importer.bas` still references the old name and will be updated in Session D.
 
 ### B1_Importer to accept parameters, not named ranges
-`FileImporter` accepts file path and submission ID as parameters passed by `B4_Process_Folder`. It does not read `SubmissionFolderPath` from the Config named range. All validation logic has been removed — file validation is B5's responsibility, and by the time B1 is called the file has already been validated and matched. Updated in Session D.
+`FileImporter` accepts file path, submission ID, org name, and submission name as parameters passed by `B4_Process_Folder`. It does not read from Config named ranges for these values. All validation logic has been removed — file validation is B5's responsibility, and by the time B1 is called the file has already been validated and matched.
 
 ### Separation of response validation and duplicate detection into distinct modules
 Response validation (orange cell colouring) and duplicate detection (green cell colouring) are separate concerns and are implemented in separate modules:
@@ -143,3 +143,20 @@ The Support sheet check (Check 2) is the only non-configurable check — it uses
 
 ### openpyxl drops Form Controls on save — .xlsm hands-off once buttons are present
 openpyxl silently drops Excel Form Controls (buttons) when saving a `.xlsm` file, even when loading an existing file rather than creating a new one. Once buttons have been added to the workbook, the `.xlsm` must never be passed through the MCP `write_excel` tool. All future workbook changes are applied directly in Excel by the user, with Claude providing an exact instruction list of values, named ranges, and formatting to apply.
+
+### B1 empty-record skip logic: has-data check across all question cells
+The original B1 skip logic checked whether the unique reference cell was blank. This was ineffective because unique references ("Patient 1", "Patient 2" etc.) are hardcoded headers in the template — they are never blank regardless of whether any response data exists.
+
+The replacement logic iterates all question positions in `StartCols` (index 2 onwards, skipping the unique ref at index 1) and checks whether at least one response cell is non-blank. Threshold is 1: any single non-blank response constitutes a real record and must be imported. This works for both Columns and Rows orientations — the only difference is argument order in `Wsh_Source.Cells()`. An `Exit For` on first hit keeps performance acceptable even for large DataMax values.
+
+### B6 must precede the first live API test
+B6_Response_Validator must be built and verified before any records are posted to the database. The API import will fail if responses are invalid — for example, an LS response that does not match a valid list item ID cannot be converted and will cause the post to error. Orange cells are the user's signal to correct data before posting. Running a post against unvalidated data risks creating partial or corrupt case codes against the test database.
+
+### B6 response validation scope: LS, N, TX, YN — DT parked
+B6 validates three question types relevant to Managing Frailty:
+
+- **LS:** response text must match one of the valid options for that question in the Drop downs sheet. Lookup is by QID: find the question's column in `DropDownQs` (row 1), then check the cell value against response text items in the even column from row 3 downwards.
+- **N:** cell value must pass `IsNumeric()`. Non-numeric values flagged orange.
+- **TX:** no validation applied. Non-blank text is always valid; blank cells are skipped at post time per existing architecture.
+- **YN:** no validation applied. Values are constrained to Yes/No by the template drop-down.
+- **DT:** parked — not present in Managing Frailty. Will be addressed in the Virtual Ward session.

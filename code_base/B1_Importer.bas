@@ -7,18 +7,23 @@ Option Explicit
 ' Pure data transfer. Called by B4_Process_Folder once a file
 ' has passed validation (B5) and been matched to a submission.
 '
-' Accepts file path and submission ID as parameters.
-' No validation logic -- B5 owns that.
+' Accepts file path, submission ID, org name, and submission
+' name as parameters. No validation logic -- B5 owns that.
 '
 ' Finds the next empty row on the Home sheet and appends;
 ' does not clear existing data (clearing is handled by B4
 ' at the start of the process run).
 '
-' Hard fails if the first expected patient position is blank
-' (i.e. the file contains no patient data).
+' Skips any patient position where all question cells are blank
+' (threshold: at least 1 non-blank response required to import).
+' Works for both Columns and Rows orientations.
+'
+' Hard fails if the entire file contains no patient data
+' (i.e. every position across the full DataMax range is empty).
 ' ============================================================
 
-Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
+Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
+                 ByVal Str_OrgName As String, ByVal Str_SubName As String)
 
     Dim Wsh_Home As Worksheet:              Set Wsh_Home = ThisWorkbook.Worksheets("Home")
     Dim Wbk_Source As Workbook
@@ -36,6 +41,9 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
     Dim Lng_Position As Long
     Dim Str_UniqueRef As String
     Dim Lng_ColIndex As Long
+    Dim Bln_HasData As Boolean
+    Dim Lng_CheckIndex As Long
+    Dim Lng_ImportedCount As Long:          Lng_ImportedCount = 0
     Dim Str_FileName As String:             Str_FileName = Mid(Str_FilePath, InStrRev(Str_FilePath, "\") + 1)
 
     '--Find next empty paste row on Home sheet (append mode)
@@ -60,27 +68,26 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
         '--DataStart is a column letter; StartCols holds the source row number for each field
         Lng_StartIndex = Range(Str_DataStart & "1").Column
 
-        '--Empty file check: probe unique reference cell of first expected patient
-        '--Note: this check looks at the first patient position only
-        If Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_StartIndex).Value = "" Then
-            MsgBox "No patient data was found in this file." & vbCrLf & vbCrLf & _
-                   "File: " & Str_FileName & vbCrLf & vbCrLf & _
-                   "This check looks at the first expected patient position only. " & _
-                   "If the file structure has changed, please review manually." & vbCrLf & vbCrLf & _
-                   "File will be skipped.", _
-                   vbExclamation, "No Patient Data"
-            Wbk_Source.Close SaveChanges:=False
-            Exit Sub
-        End If
-
         For Lng_Record = Lng_StartIndex To Lng_StartIndex + Lng_DataMax - 1
 
-            '--Read unique reference using the row number stored in StartCols(1)
-            Str_UniqueRef = Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_Record).Value
+            '--Check whether this patient column has at least one non-blank response
+            '--Iterates question positions only (StartCols index 2 onwards; index 1 is unique ref)
+            Bln_HasData = False
+            For Lng_CheckIndex = 2 To Rng_StartCols.Cells.Count
+                If Wsh_Source.Cells(Rng_StartCols.Cells(1, Lng_CheckIndex).Value, Lng_Record).Value <> "" Then
+                    Bln_HasData = True
+                    Exit For
+                End If
+            Next Lng_CheckIndex
 
-            If Str_UniqueRef <> "" Then
+            If Bln_HasData Then
 
-                '--Write submission ID to column H and unique reference to column J on Home
+                '--Read unique reference using the row number stored in StartCols(1)
+                Str_UniqueRef = Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_Record).Value
+
+                '--Write org name, submission name, submission ID, and unique reference to Home
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_OrgName
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Str_SubName
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef
 
@@ -97,6 +104,7 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
                 Next Rng_Cell
 
                 Lng_PasteRow = Lng_PasteRow + 1
+                Lng_ImportedCount = Lng_ImportedCount + 1
 
             End If
 
@@ -108,27 +116,26 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
         '--DataStart is a row number; StartCols holds the source column number for each field
         Lng_StartIndex = CLng(Str_DataStart)
 
-        '--Empty file check: probe unique reference cell of first expected patient
-        '--Note: this check looks at the first patient position only
-        If Wsh_Source.Cells(Lng_StartIndex, Rng_StartCols.Cells(1, 1).Value).Value = "" Then
-            MsgBox "No patient data was found in this file." & vbCrLf & vbCrLf & _
-                   "File: " & Str_FileName & vbCrLf & vbCrLf & _
-                   "This check looks at the first expected patient position only. " & _
-                   "If the file structure has changed, please review manually." & vbCrLf & vbCrLf & _
-                   "File will be skipped.", _
-                   vbExclamation, "No Patient Data"
-            Wbk_Source.Close SaveChanges:=False
-            Exit Sub
-        End If
-
         For Lng_Record = Lng_StartIndex To Lng_StartIndex + Lng_DataMax - 1
 
-            '--Read unique reference using the column number stored in StartCols(1)
-            Str_UniqueRef = Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, 1).Value).Value
+            '--Check whether this patient row has at least one non-blank response
+            '--Iterates question positions only (StartCols index 2 onwards; index 1 is unique ref)
+            Bln_HasData = False
+            For Lng_CheckIndex = 2 To Rng_StartCols.Cells.Count
+                If Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, Lng_CheckIndex).Value).Value <> "" Then
+                    Bln_HasData = True
+                    Exit For
+                End If
+            Next Lng_CheckIndex
 
-            If Str_UniqueRef <> "" Then
+            If Bln_HasData Then
 
-                '--Write submission ID to column H and unique reference to column J on Home
+                '--Read unique reference using the column number stored in StartCols(1)
+                Str_UniqueRef = Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, 1).Value).Value
+
+                '--Write org name, submission name, submission ID, and unique reference to Home
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_OrgName
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Str_SubName
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef
 
@@ -145,6 +152,7 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
                 Next Rng_Cell
 
                 Lng_PasteRow = Lng_PasteRow + 1
+                Lng_ImportedCount = Lng_ImportedCount + 1
 
             End If
 
@@ -154,5 +162,14 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
 
     '--Close source file
     Wbk_Source.Close SaveChanges:=False
+
+    '--Report outcome: warn if nothing was imported
+    If Lng_ImportedCount = 0 Then
+        MsgBox "No patient data was found in this file." & vbCrLf & vbCrLf & _
+               "File: " & Str_FileName & vbCrLf & vbCrLf & _
+               "All " & Lng_DataMax & " patient positions were blank across all question rows. " & _
+               "If the file structure has changed, please review manually.", _
+               vbExclamation, "No Patient Data"
+    End If
 
 End Sub
