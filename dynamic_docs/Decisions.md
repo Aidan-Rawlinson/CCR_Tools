@@ -50,7 +50,7 @@ Both Managing Frailty (Project 35) and Virtual Ward (Project 68) use ServiceID =
 openpyxl cannot produce a valid `.xlsm` file — saving with that extension produces a corrupt file. Workbooks are created as `.xlsx` via the `write_excel` MCP tool. The user opens the file in Excel, saves as `.xlsm` (which adds the correct macro container structure), then imports the `.bas` modules via the VBA editor. This is a single manual step per tool instance.
 
 ### write_excel tool added to MCP server
-Workbook creation and population requires programmatic Excel file writing. A `write_excel` tool was added to the file-reader MCP server using openpyxl. Supports 13 operations: create_workbook, add_sheet, delete_sheet, rename_sheet, write_cell, write_range, set_named_range, add_validation, set_sheet_visibility, set_column_width, set_bold, set_background_colour, save_workbook. Verified working in Session 5.
+Workbook creation and population requires programmatic Excel file writing. A `write_excel` tool was added to the file-reader MCP server using openpyxl. Supports operations including: create_workbook, add_sheet, delete_sheet, rename_sheet, write_cell, write_range, set_named_range, add_validation, set_sheet_visibility, set_column_width, set_bold, set_font_colour, set_background_colour, save_workbook. In-place editing of existing files supported (no create_workbook required). Verified working.
 
 ### reference/ and new_questionnaires/ committed to Git
 Both the `reference/` folder (Alex's `.xlsm`, exported `.bas` modules, guidance document) and the `new_questionnaires/` folder (the two new project template files) are committed to the repository. These are source materials for the build and their presence in version control provides a useful audit trail. Neither folder contains credentials or sensitive personal data — credentials were redacted from Alex's files in Session 3.
@@ -92,4 +92,18 @@ Three categories of validation are deliberately excluded from the current codeba
 All three will be addressed in a dedicated validation session. Keeping them separate allows the core import and post flow to be built and tested independently.
 
 ### Build phases: Home sheet population is a separate activity
-Populating the Home sheet metadata rows (question numbers, type codes, source positions, QIDs, column headers) for each project instance is a build-time activity, not part of the tool's runtime functionality. This work is scoped to Sessions 11 and 12 when the Managing Frailty and Virtual Ward instances are configured.
+Populating the Home sheet metadata rows (question numbers, type codes, source positions, QIDs, column headers) for each project instance is a build-time activity, not part of the tool's runtime functionality. This work is scoped to the tool instance build sessions.
+
+### Colour palette established from Alex's reference tool
+Alex's formatting conventions have been reverse-engineered from `Template_Processing_Tool.xlsm` and documented in `dynamic_docs/Colour_Palette.md`. Five colours identified: panel background (`D3DAEE`), input cell (`F9FAFA`), metadata row yellow (`FFFF00`), dark navy header (`1F3864`), label grey (`F2F2F2`). These are now applied to `CCR_Tool_Base.xlsx` and serve as the standard for all subsequent sheet formatting. MCP server updated with `set_font_colour` op and opacity fix for `set_background_colour`.
+
+### Input file flow redesigned: folder-cycling with semi-automated matching
+**Original plan:** single file path on Config; user pastes path before import; tool reads one file.
+
+**New plan:** tool cycles over all `.xls*` files in a folder (consistent with Alex's actual implementation). For each file, the tool assists the user in matching it to the correct org and submission — either automatically where a confident match can be made, or by presenting the user with a choice. This better reflects operational reality (multiple files submitted per run) and aligns with how Alex's tool actually works.
+
+**Impact:** `B1_Importer.bas` will need reworking. The `SubmissionFilePath` Config row will be repurposed or replaced with a folder path. The Orgs sheet must be pre-populated before the importer runs — this requires a new VBA routine to call `API_GetSubmissions` and populate the Orgs sheet, which is Session A's deliverable.
+
+**Rationale:** Review of Alex's code in Session 10 revealed that his implementation cycles over a folder of files and reads org/submission context from within each file. Our originally planned flow (user selects org first, then selects submission, then points at a single file) was based on his user-facing guidance document rather than his actual code. The guidance describes the intended UX; the code reflects operational reality. We are aligning to the code.
+
+**Static spec documents** (`Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`) still describe the old flow and must be updated in Session C before tool instances are built.

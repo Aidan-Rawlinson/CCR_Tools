@@ -165,4 +165,27 @@
   - `StartCols` is the single source of truth for source template positions — unique ref and all questions treated identically
   - Alex's case code flow left entirely untouched
   - Validation (file validation, response validation, `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator`) parked as a separate module and session
-  - Build phases clarified: Home sheet population (Sessions 11–12) is a separate build activity, not part of the tool's runtime functionality
+  - Build phases clarified: Home sheet population (tool instance sessions) is a separate build activity, not part of the tool's runtime functionality
+
+## Session 10 — 26 June 2026
+
+**Outcome:** MCP server improved. Colour palette documented. Base workbook formatted. Input file flow redesigned.
+
+- MCP server (`server.py`) updated with three improvements:
+  - `read_excel`: now reads cell background colour (`background_colour` field, ARGB hex); now iterates all cells within the used range (capped at 100 rows) rather than only value-bearing cells — enabling colour reading on empty styled cells
+  - `write_excel`: now supports in-place editing of existing files (loads workbook if file exists and first op is not `create_workbook`); `set_background_colour` now prepends `FF` alpha for full opacity when 6-character RGB supplied; new `set_font_colour` operation added; `set_bold` updated to preserve existing font properties
+- Colour palette reverse-engineered from `Template_Processing_Tool.xlsm`:
+  - Five colours identified and documented in `dynamic_docs/Colour_Palette.md`
+  - Panel background `D3DAEE`, input cell `F9FAFA`, metadata yellow `FFFF00`, dark navy header `1F3864`, label grey `F2F2F2`
+  - Formatting rules derived: panel fills a contiguous block; input cells lift slightly off the panel; navy headers carry white bold text; metadata rows are yellow across full width; data rows carry no fill
+- `CCR_Tool_Base.xlsx` formatted to palette:
+  - Home: panel `B2:E15` in `D3DAEE`; header row `F6:X6` in `1F3864` with white bold text
+  - Config: header `A1:B1` in `1F3864` with white bold text; value cells `B2:B13` in `F9FAFA` (label cells `A2:A13` already `F2F2F2`)
+  - Orgs: header `A1:D1` in `1F3864` with white bold text
+- **Flow redesign decision:** the single-file-path import approach is being replaced. Review of Alex's code confirmed his tool cycles over a folder of files; his user guidance (our original reference) describes a different flow. We are aligning to his code, not his guidance. The new flow cycles over all files in a folder and supports the user in matching each file to the correct org and submission — automatically where confident, with user confirmation where not.
+- Session plan updated: three new sessions (A, B, C) replace the previously planned Session 10 end-to-end test:
+  - Session A: Write and test VBA to populate Orgs sheet from API
+  - Session B: Write and test folder-cycling importer with matching support
+  - Session C: Pause and update all static spec documents to reflect new flow
+- `B1_Importer.bas` flagged as requiring rework for new flow — treat as starting point
+- Static spec documents (`Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`) flagged as describing old flow — not to be relied upon until Session C

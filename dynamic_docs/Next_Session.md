@@ -1,33 +1,29 @@
 <!-- Purpose: Claude's handoff note -- what to pick up, open questions, and suggested first steps for the next session. Written by Claude at session end. -->
 
-## Handoff for Session 10 — End-to-End Test
+## Handoff for Session A — Orgs Sheet Population
 
 ### Context
-All five `.bas` modules are written and in `code_base/`. `CCR_Tool_Base.xlsx` has been extended with the full Config and Home metadata structure. Session 10 is the first end-to-end test of the VBA against the test database.
+The planned single-file-path import flow has been replaced with a folder-cycling approach with semi-automated org/submission matching (see Decisions.md). This session focuses on the first prerequisite for that flow: populating the Orgs sheet from the API so the tool knows which organisations are associated with the project.
 
 ### Pre-session checklist
-- [ ] **Test database access confirmed** — still the hard gate; Session 10 cannot proceed without it
-- [ ] Confirm API `questionType` string for `DT` questions — needed before the Virtual Ward tool can be fully tested
-- [ ] User to save `CCR_Tool_Base.xlsx` as `.xlsm` and import all five `.bas` modules via VBA editor before the session begins
+- [ ] Test database access confirmed — still needed before any live API calls
+- [ ] Confirm API `questionType` string for `DT` questions (Virtual Ward only)
+- [ ] User to ensure `CCR_Tool_Base.xlsx` has been saved as `.xlsm` and `.bas` modules imported
 
-### Suggested first steps
-1. Wake up and read dynamic docs as normal
-2. Confirm test database access and `.xlsm` import are in place
-3. Work through the tool end-to-end against the test database:
-   - Enter credentials on Config
-   - Select org and retrieve submissions
-   - Import a test template file
-   - Review Home sheet — check unique refs and responses landed in the right columns
-   - Run Import Data to Database
-   - Verify case codes and responses in the test database
-4. Fix any issues found — expect first-run bugs, particularly around the `StartCols` position logic in B1 and the `FullDataArea` iteration in A3
+### Session A goal
+Write and test VBA to call `API_GetSubmissions` and populate the Orgs sheet (Org ID, Org Name, Display string, Submission ID columns) for a given Project ID. This is the foundation the new matching flow depends on.
+
+### Session B goal (after A)
+Write and test the folder-cycling importer. The tool cycles over all `.xls*` files in a folder. For each file, it presents the user with enough information to confirm which org and submission it belongs to — or does so automatically where a confident match can be made. Design of the matching logic to be agreed at the start of Session B.
+
+### Session C goal (after B)
+Pause build work. Update `Functional_Spec.md`, `Architecture_Design.md`, and `Technical_Spec.md` to reflect the new flow. These are the documents Alex will return to — they must be accurate before the tool instances are built.
 
 ### Key open items
-- API `questionType` string for `DT` — placeholder `"date"` used in A3; needs confirming before Virtual Ward test
-- Validation module (file validation, `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator`) — parked, separate session after core flow is proven
-- Sessions 11–12: Home sheet population for Managing Frailty and Virtual Ward instances — separate build activity
+- API `questionType` string for `DT` — placeholder `"date"` used in A3
+- Validation module (`CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator`) — parked, separate session after core flow is proven
+- Static spec documents currently describe the old single-file-path flow — do not rely on them until Session C is complete
 
-### Known risks going into testing
-- `StartCols` position logic in B1 — first real test of reading source template positions from Home row 4; likely to need adjustment
-- `FullDataArea` column 5 assumption in A3 — unique ref column (J) is column 5 of `FullDataArea` (which starts at F); worth verifying this holds
-- `DataStart` column letter conversion in B1 (`Range(Str_DataStart & "1").Column`) — depends on the column letter being valid; no error handling if blank or invalid
+### Known risks
+- `B1_Importer.bas` was written for the single-file-path approach and will need reworking for the folder-cycling flow — treat it as a starting point, not a finished artefact
+- The matching logic design (how confident does a match need to be before it's automatic vs requiring user confirmation?) needs to be agreed before Session B build work begins
