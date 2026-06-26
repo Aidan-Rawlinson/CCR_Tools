@@ -175,3 +175,21 @@
 - `Option Private Module` identified as the cause of the macro not appearing in Excel's macro picker — removed
 - Tested against test database with Managing Frailty (Project ID 35): 25 submissions returned correctly, first time
 - No new architectural decisions — clean, self-contained deliverable
+
+## Session B — 26 June 2026
+
+**Outcome:** `Process_Folder.bas` written and tested. File picker, org/submission matching, and end-of-run summary all working.
+
+- `Process_Folder.bas` written — new module, independent of existing modules
+- Single button triggers multi-select `msoFileDialogFilePicker`; opens in folder stored in `SubmissionFolderPath`; writes folder of first selected file back to `SubmissionFolderPath` for next run
+- `SubmissionFilePath` named range renamed to `SubmissionFolderPath` by user in `CCR_Tool_Base.xlsm`; Config sheet label updated to match
+- `DataStart` and `DataMax` named ranges confirmed as already integrated in `B1_Importer.bas` — no changes needed
+- Orgs sheet confirmed as populated with live Managing Frailty submission data from Session A test
+- Matching decision tree implemented:
+  - **Case 1** (no org match): message with filename and org name string; file skipped; no user choice
+  - **Case 2** (one submission): Yes/No confirmation showing org name, submission name/ID, and template descriptor if present
+  - **Case 3** (multiple submissions): numbered `InputBox` showing all submissions; confirmation message box under all input outcomes (valid, invalid, blank)
+- `ProcessValidFile` stub confirms match with message box (filename + Submission ID)
+- End-of-run summary: files selected / processed / skipped
+- Tested against four files covering all three cases — all working first time, message boxes confirmed ideal
+- **Architectural decision:** `Process_Folder` is a pre-step to the importer, not a replacement; `B1_Importer.bas` left untouched this session

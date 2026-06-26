@@ -1,6 +1,9 @@
 # Framework environment -- never commit
 environment/
 
+# Test inputs -- local working files, not for version control
+test_inputs/
+
 # Python
 __pycache__/
 *.py[cod]

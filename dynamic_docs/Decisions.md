@@ -97,13 +97,19 @@ Populating the Home sheet metadata rows (question numbers, type codes, source po
 ### Colour palette established from Alex's reference tool
 Alex's formatting conventions have been reverse-engineered from `Template_Processing_Tool.xlsm` and documented in `dynamic_docs/Colour_Palette.md`. Five colours identified: panel background (`D3DAEE`), input cell (`F9FAFA`), metadata row yellow (`FFFF00`), dark navy header (`1F3864`), label grey (`F2F2F2`). These are now applied to `CCR_Tool_Base.xlsx` and serve as the standard for all subsequent sheet formatting. MCP server updated with `set_font_colour` op and opacity fix for `set_background_colour`.
 
-### Input file flow redesigned: folder-cycling with semi-automated matching
+### Input file flow redesigned: multi-select file picker with semi-automated matching
 **Original plan:** single file path on Config; user pastes path before import; tool reads one file.
 
-**New plan:** tool cycles over all `.xls*` files in a folder (consistent with Alex's actual implementation). For each file, the tool assists the user in matching it to the correct org and submission — either automatically where a confident match can be made, or by presenting the user with a choice. This better reflects operational reality (multiple files submitted per run) and aligns with how Alex's tool actually works.
+**New plan:** a single button presents a multi-select `msoFileDialogFilePicker`. The user selects one or more files. For each file, the tool reads `Support!B5` (org name) and `Support!B6` (submission descriptor) and matches against the Orgs sheet — automatically confirming where one match exists, prompting the user to choose where multiple exist, and skipping with a message where no match is found. `SubmissionFolderPath` (formerly `SubmissionFilePath`) remembers the last-used folder so the picker opens in the right place on subsequent runs.
 
-**Impact:** `B1_Importer.bas` will need reworking. The `SubmissionFilePath` Config row will be repurposed or replaced with a folder path. The Orgs sheet must be pre-populated before the importer runs — this requires a new VBA routine to call `API_GetSubmissions` and populate the Orgs sheet, which is Session A's deliverable.
+**Impact:** `Process_Folder.bas` is a new module that owns the picker and matching logic. `B1_Importer.bas` remains a single-file importer and is called by `Process_Folder` once a match is confirmed. The two modules are kept deliberately separate.
 
-**Rationale:** Review of Alex's code in Session 10 revealed that his implementation cycles over a folder of files and reads org/submission context from within each file. Our originally planned flow (user selects org first, then selects submission, then points at a single file) was based on his user-facing guidance document rather than his actual code. The guidance describes the intended UX; the code reflects operational reality. We are aligning to the code.
+**Rationale:** Review of Alex's code revealed folder-cycling as his actual implementation. Multi-select picker is simpler and more predictable than folder-cycling via `Dir()` — the user has explicit control over which files are processed. `InputBox` used for multi-submission selection in preference to forms.
 
-**Static spec documents** (`Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`) still describe the old flow and must be updated in Session C before tool instances are built.
+**Static spec documents** (`Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`) still describe the old flow and must be updated in a dedicated session before tool instances are built.
+
+### Process_Folder as a pre-step, not a replacement for B1_Importer
+`Process_Folder.bas` handles file selection and org/submission matching only. It does not contain any import logic. `B1_Importer.bas` remains the single-file importer and is called by `Process_Folder` once a valid match is confirmed. This keeps the two concerns separate and leaves `B1_Importer` available for direct use if needed.
+
+### SubmissionFilePath renamed to SubmissionFolderPath
+The `SubmissionFilePath` named range and Config sheet label have been renamed to `SubmissionFolderPath`. The cell holds the folder path of the last-used file picker location. `B1_Importer.bas` still references the old name and will be updated when the real importer call is wired into `Process_Folder`.
