@@ -6,15 +6,19 @@ Option Explicit
 ' ------------------------------------------------------------
 ' Presents a multi-select file picker to the user, saves the
 ' folder of the first selected file back to SubmissionFolderPath,
-' then processes each selected file through the org/submission
-' matching decision tree.
+' then processes each selected file through the full pipeline:
+'
+'   Open file
+'     → B5: ValidateFile  (mandatory sheets, Support fields, spot checks)
+'     → Read org name and submission descriptor via XLookup on Support sheet
+'     → Close file
+'     → Org/submission matching decision tree
+'     → ProcessValidFile (stub -- to be replaced in Session D)
 '
 ' Matching decision tree:
 '   Case 1 - No org match:       message + skip, no user choice
 '   Case 2 - One submission:     Yes/No confirmation before process
 '   Case 3 - Multiple subs:      numbered InputBox + confirmation before process
-'
-' Once a file passes matching it calls ProcessValidFile (stub).
 ' ============================================================
 
 Sub PickAndProcess()
@@ -27,10 +31,8 @@ Sub PickAndProcess()
     Str_StartFolder = Rng_FolderPath.Value
 
     If Str_StartFolder <> "" Then
-        '--If it's a file path, strip back to folder
         If InStr(Str_StartFolder, "\") > 0 Then
             If Dir(Str_StartFolder, vbDirectory) = "" Then
-                '--Looks like a file path; take the folder portion
                 Str_StartFolder = Left(Str_StartFolder, InStrRev(Str_StartFolder, "\"))
             End If
         End If
@@ -66,10 +68,9 @@ Sub PickAndProcess()
         Dim Str_FilePath As String:     Str_FilePath = Dlg.SelectedItems(i)
         Dim Str_FileName As String:     Str_FileName = Mid(Str_FilePath, InStrRev(Str_FilePath, "\") + 1)
 
-        '--Read org name and submission descriptor from Support sheet
+        '--Open file
         Dim Wbk_Source As Workbook
-        Dim Str_OrgName As String
-        Dim Str_SubDescriptor As String
+        Set Wbk_Source = Nothing
 
         On Error Resume Next
         Set Wbk_Source = Workbooks.Open(Str_FilePath, ReadOnly:=True)
@@ -84,27 +85,38 @@ Sub PickAndProcess()
             GoTo NextFile
         End If
 
-        Dim Wsh_Support As Worksheet
-        On Error Resume Next
-        Set Wsh_Support = Wbk_Source.Worksheets("Support")
-        On Error GoTo 0
-
-        If Wsh_Support Is Nothing Then
-            MsgBox "The file does not contain a 'Support' sheet and cannot be read:" & vbCrLf & vbCrLf & _
-                   Str_FileName & vbCrLf & vbCrLf & _
-                   "File will be skipped.", _
-                   vbExclamation, "Invalid File"
+        '--B5: Validate file structure and content
+        If Not File_Validator.ValidateFile(Wbk_Source, Str_FileName) Then
             Wbk_Source.Close SaveChanges:=False
             Set Wbk_Source = Nothing
             Int_Skipped = Int_Skipped + 1
             GoTo NextFile
         End If
 
-        Str_OrgName = Trim(CStr(Wsh_Support.Range("B5").Value))
-        Str_SubDescriptor = Trim(CStr(Wsh_Support.Range("B6").Value))
+        '--Read org name and submission descriptor via XLookup on Support sheet
+        '--File has passed validation so Support sheet and fields are guaranteed present
+        Dim Wsh_Support As Worksheet
+        Set Wsh_Support = Wbk_Source.Worksheets("Support")
+
+        Dim Str_OrgName As String
+        Dim Str_SubDescriptor As String
+
+        On Error Resume Next
+        Str_OrgName = Trim(CStr(WorksheetFunction.XLookup( _
+                        "Organisation Name", _
+                        Wsh_Support.Columns(1), _
+                        Wsh_Support.Columns(2), _
+                        "")))
+        Str_SubDescriptor = Trim(CStr(WorksheetFunction.XLookup( _
+                        "Submission Name", _
+                        Wsh_Support.Columns(1), _
+                        Wsh_Support.Columns(2), _
+                        "")))
+        On Error GoTo 0
 
         Wbk_Source.Close SaveChanges:=False
         Set Wbk_Source = Nothing
+        Set Wsh_Support = Nothing
 
         '--Find matching rows in Orgs sheet (column B = Org Name)
         Dim Lng_LastOrgRow As Long
@@ -239,8 +251,8 @@ End Sub
 ' ============================================================
 ' ProcessValidFile  (stub)
 ' ------------------------------------------------------------
-' Called once a file has been matched to a submission.
-' Replace this stub with the real import call in Session B.
+' Called once a file has passed validation and been matched
+' to a submission. To be replaced with real B1 call in Session D.
 ' ============================================================
 
 Private Sub ProcessValidFile(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long)
@@ -248,9 +260,9 @@ Private Sub ProcessValidFile(ByVal Str_FilePath As String, ByVal Lng_SubmissionI
     Dim Str_FileName As String
     Str_FileName = Mid(Str_FilePath, InStrRev(Str_FilePath, "\") + 1)
 
-    MsgBox "Valid file." & vbCrLf & vbCrLf & _
+    MsgBox "Valid file — matched to submission." & vbCrLf & vbCrLf & _
            "File:          " & Str_FileName & vbCrLf & _
            "Submission ID: " & Lng_SubmissionID, _
-           vbInformation, "Valid File"
+           vbInformation, "Ready to Import"
 
 End Sub

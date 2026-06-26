@@ -9,11 +9,11 @@ A three-instance Excel/VBA tool sharing a single generalised VBA codebase. All p
 
 | Instance | Project | Project ID | Status |
 |---|---|---|---|
-| `CCR_Tool_Base.xlsx` | — | — | Template; unpopulated |
-| `CCR_Tool_ManagingFrailty.xlsx` | Managing Frailty in a Bed Based Setting | 35 | To be built |
-| `CCR_Tool_VirtualWard.xlsx` | Virtual Wards (also known as Hospital at Home) | 68 | To be built |
+| `CCR_Tool_Base.xlsm` | — | — | Template; base workbook built |
+| `CCR_Tool_ManagingFrailty.xlsm` | Managing Frailty in a Bed Based Setting | 35 | To be built |
+| `CCR_Tool_VirtualWard.xlsm` | Virtual Wards (also known as Hospital at Home) | 68 | To be built |
 
-Each instance is saved as `.xlsm` by the user after workbook creation, then `.bas` modules are imported via the VBA editor.
+Each instance is created as `.xlsx` via the MCP write_excel tool, saved as `.xlsm` by the user in Excel, then `.bas` modules are imported via the VBA editor.
 
 ---
 
@@ -22,8 +22,8 @@ Each instance is saved as `.xlsm` by the user after workbook creation, then `.ba
 | Sheet | Visible | Purpose |
 |---|---|---|
 | `Home` | Yes | Central working sheet — imported rows, toggle column, case code column, response columns |
-| `Config` | Yes | All configuration — Project ID, Service ID, year, toggles, file path, credentials |
-| `Orgs` | Yes | Organisation list and submission selector drop-downs |
+| `Config` | Yes | All configuration — Project ID, Service ID, year, toggles, folder path, credentials |
+| `Orgs` | Yes | Organisation and submission list — populated via API before file processing |
 | `Drop downs` | Yes | QID and list item ID lookup — keyed by question ID, built from SSMS CSVs |
 | `Lists` | Hidden | Source lists for Config data validation drop-downs |
 
@@ -36,8 +36,8 @@ Follows Alex's layout directly.
 | Row | Content |
 |---|---|
 | 2 | Question numbers |
-| 3 | Question type codes: `LS`, `YN`, `N`, `TX` |
-| 4 | Question IDs — `QuestionCols` named range covers this row |
+| 3 | Question type codes: `LS`, `YN`, `N`, `TX`, `DT` |
+| 4 | Question IDs and source positions — `QuestionCols` named range covers this row |
 | 5 | Column headers |
 | 6+ | Data rows (one row per patient) |
 
@@ -64,9 +64,11 @@ All configuration values in column B, labels in column A. Each cell is a named r
 | 5 | `DataSheetName` | `CCR` | Plain value |
 | 6 | `Toggle` | `Test` | Data validation drop-down: `Test`, `Live` |
 | 7 | `Orientation` | `Columns` | Data validation drop-down: `Columns`, `Rows` |
-| 8 | `SubmissionFilePath` | *(blank)* | User entry at runtime |
+| 8 | `SubmissionFolderPath` | *(blank)* | Written by file picker at runtime |
 | 10 | `APIUsername` | *(blank)* | User entry |
 | 11 | `APIPassword` | *(blank)* | User entry |
+| 12 | `DataStart` | *(per instance)* | First data column/row in source template |
+| 13 | `DataMax` | *(per instance)* | Maximum number of patient records |
 
 ---
 
@@ -74,19 +76,40 @@ All configuration values in column B, labels in column A. Each cell is a named r
 
 Follows Alex's structure. Question IDs in odd columns (row 1), question labels in row 2 (same odd columns), response text + list item ID pairs in the adjacent even column from row 3 downwards.
 
-Built from SSMS CSVs per tool instance. Covers all `LS`-type questions. `TX`, `YN`, and `N` type questions do not require entries here.
+Built from SSMS CSVs per tool instance. Covers all `LS`-type questions only. `TX`, `YN`, `N`, and `DT` type questions do not require entries here.
 
 ---
 
 ## VBA Module Structure
 
-| Module | Type | Purpose |
-|---|---|---|
-| `A1_API_SUPPORT` | Infrastructure | VBA-JSON library (Tim Hall, MIT), UTC utilities, `GetToken()` — reads credentials from `Config` named ranges |
-| `A2_API_FUNCTIONS` | API layer | All API functions + `APICall` / `APIPost` HTTP wrappers — reads `Toggle` and `SubmissionYear` from `Config` |
-| `A3_API_Calls` | Orchestration | `PostSurveyData` main loop — handles all four question types; reads `ServiceID` and `ProjectID` from `Config` |
-| `B1_Importer` | Import | `FileImporter`, `CaseCodeProcessed`, `QuestionResponseMatcher`, `ResponseValidator` — reads `Orientation`, `DataSheetName`, `SubmissionFilePath` from `Config` |
-| `B2_Toggle` | UI | Environment toggle handler — writes to `Config!Toggle` |
+| Module | Purpose |
+|---|---|
+| `A1_API_SUPPORT` | VBA-JSON library (Tim Hall, MIT), UTC utilities, `GetToken()` — reads credentials from `Config` named ranges |
+| `A2_API_FUNCTIONS` | All API functions plus `APICall` / `APIPost` HTTP wrappers — reads `Toggle` and `SubmissionYear` from `Config` |
+| `A3_API_Calls` | `PostSurveyData` main loop — handles all five question types (LS, YN, N, TX, DT); reads `ServiceID` and `ProjectID` from `Config` |
+| `B1_Importer` | Pure data transfer — reads the source template and writes patient rows to the Home sheet; accepts file path and submission ID as parameters; no validation logic |
+| `B2_Toggle` | Environment toggle handler — writes to `Config!Toggle` |
+| `B3_Submissions` | `PopulateSubmissions` — calls the API and writes org/submission data to the Orgs sheet |
+| `B4_Process_Folder` | File picker and org/submission matching — presents the multi-select picker, calls B5 for each file, handles the matching decision tree, calls B1 once a match is confirmed |
+| `B5_File_Validator` | File validation — determines whether a selected file is a structurally valid questionnaire file before matching proceeds; covers sheet presence, data layout, and configuration alignment |
+| `B6_Response_Validator` | Response validation — runs after import; covers response text matching (orange cells), duplicate detection against the database (green cells), and case code comparison |
+
+---
+
+## Processing Flow
+
+Files move through four stages in sequence. A file that fails at any stage does not proceed to the next.
+
+```
+Pick files (B4)
+    → Validate file (B5)
+        → Match to org/submission (B4)
+            → Import (B1)
+```
+
+After all files are processed, response validation (B6) runs across all imported rows on the Home sheet.
+
+Posting to the database (A3) is a separate user-initiated step after review.
 
 ---
 
@@ -104,7 +127,7 @@ Selected by `Toggle` named range.
 
 | Call | Method | Purpose |
 |---|---|---|
-| Get Submissions | GET | Retrieve submissions for selected org and project |
+| Get Submissions | GET | Retrieve all submissions for the project; used by B3 to populate Orgs sheet |
 | Get Next Case Code | POST | Create next available case code; write unique reference to note field |
 | Post Survey Data | POST | Submit response payload for a case code |
 | Close Case Code | POST | Set case code status to Completed |
@@ -116,17 +139,23 @@ HTTP Basic Auth. Token fetched fresh per API call (no caching — follows Alex's
 
 ---
 
-## Data Flow — Import
+## Data Flow — File Processing
 
-1. User pastes file path into `Config!SubmissionFilePath`
-2. `FileImporter` opens the template file, reads sheet `DataSheetName`
-3. `Orientation` toggle determines iteration direction:
-   - `Columns`: iterate columns E+ (one patient per column); questions in rows
-   - `Rows`: iterate rows 6+ (one patient per row); questions in columns (Alex's pattern)
-4. Section header rows (no value in question type column) are skipped
-5. Each patient's responses are written to a new row on `Home` starting at column K
-6. `CaseCodeProcessed` calls Get Case Code Notes API; pre-marks rows with matching references as "No" in column F
-7. `QuestionResponseMatcher` calls Get Case Code Responses API; colours cells green (match) or orange (mismatch/invalid)
+For each file selected via the picker:
+
+1. **B5_File_Validator** checks the file is structurally valid
+2. **B4_Process_Folder** reads org name and submission descriptor from `Support!B5` and `Support!B6`
+3. Matching runs against the Orgs sheet; user confirms or selects submission
+4. **B1_Importer** opens the file, reads sheet `DataSheetName`, iterates patient columns/rows per `Orientation`:
+   - `Columns`: one patient per column; questions in rows; `DataStart` is a column letter
+   - `Rows`: one patient per row; questions in columns; `DataStart` is a row number
+5. Section header rows (no value in question type column) are skipped
+6. Each patient's responses are written to a new row on `Home` starting at column K
+
+After all files are processed:
+
+7. **B6_Response_Validator** calls Get Case Code Notes API; pre-marks rows with matching references as "No" in column F
+8. **B6_Response_Validator** calls Get Case Code Responses API; colours cells green (match) or orange (mismatch/invalid)
 
 ## Data Flow — Post
 
@@ -137,6 +166,7 @@ For each row in Home where column F = "Yes":
    - `YN`: convert "Yes" → `"Y"`, "No" → `"N"`
    - `N`: pass numeric value directly
    - `TX`: pass text value directly
+   - `DT`: validate date serial within range; convert to `YYYY-MM-DD 00:00:00.000`
 2. Skip blank responses
 3. Call Get Next Case Code → write unique reference to note field
 4. Verify case code created

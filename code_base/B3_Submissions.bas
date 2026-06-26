@@ -1,7 +1,6 @@
 Attribute VB_Name = "B3_SUBMISSIONS"
 Option Explicit
 Option Compare Text
-Option Private Module
 Option Base 1
 
 '###########################################

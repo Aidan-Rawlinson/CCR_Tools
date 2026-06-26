@@ -89,7 +89,7 @@ Three categories of validation are deliberately excluded from the current codeba
 2. Response validation (`ResponseValidator` — orange cell colouring for invalid responses)
 3. Database comparison (`CaseCodeProcessed`, `QuestionResponseMatcher` — duplicate detection and green/orange cell colouring)
 
-All three will be addressed in a dedicated validation session. Keeping them separate allows the core import and post flow to be built and tested independently.
+All three will be addressed in dedicated sessions. Keeping them separate allows the core import and post flow to be built and tested independently.
 
 ### Build phases: Home sheet population is a separate activity
 Populating the Home sheet metadata rows (question numbers, type codes, source positions, QIDs, column headers) for each project instance is a build-time activity, not part of the tool's runtime functionality. This work is scoped to the tool instance build sessions.
@@ -100,16 +100,43 @@ Alex's formatting conventions have been reverse-engineered from `Template_Proces
 ### Input file flow redesigned: multi-select file picker with semi-automated matching
 **Original plan:** single file path on Config; user pastes path before import; tool reads one file.
 
-**New plan:** a single button presents a multi-select `msoFileDialogFilePicker`. The user selects one or more files. For each file, the tool reads `Support!B5` (org name) and `Support!B6` (submission descriptor) and matches against the Orgs sheet — automatically confirming where one match exists, prompting the user to choose where multiple exist, and skipping with a message where no match is found. `SubmissionFolderPath` (formerly `SubmissionFilePath`) remembers the last-used folder so the picker opens in the right place on subsequent runs.
+**New plan:** a single button presents a multi-select `msoFileDialogFilePicker`. The user selects one or more files. For each file, the tool validates the file structure (B5), then reads the Support sheet via XLookup for org name and submission descriptor, and matches against the Orgs sheet — automatically confirming where one match exists, prompting the user to choose where multiple exist, and skipping with a message where no match is found. `SubmissionFolderPath` (formerly `SubmissionFilePath`) remembers the last-used folder so the picker opens in the right place on subsequent runs.
 
-**Impact:** `Process_Folder.bas` is a new module that owns the picker and matching logic. `B1_Importer.bas` remains a single-file importer and is called by `Process_Folder` once a match is confirmed. The two modules are kept deliberately separate.
+**Processing sequence per file:** Pick (B4) → Validate file (B5) → Match (B4) → Import (B1)
 
-**Rationale:** Review of Alex's code revealed folder-cycling as his actual implementation. Multi-select picker is simpler and more predictable than folder-cycling via `Dir()` — the user has explicit control over which files are processed. `InputBox` used for multi-submission selection in preference to forms.
+**Impact:** `B4_Process_Folder.bas` owns the picker and matching logic. `B5_File_Validator.bas` owns structural file validation and sits between the picker and matching. `B1_Importer.bas` is pure data transfer and is called by B4 once a match is confirmed. The three modules are kept deliberately separate.
 
-**Static spec documents** (`Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`) still describe the old flow and must be updated in a dedicated session before tool instances are built.
+**Rationale:** Review of Alex's code revealed folder-cycling as his actual implementation. Multi-select picker is simpler and more predictable than folder-cycling via `Dir()` — the user has explicit control over which files are processed. File validation before matching prevents the matching logic from running against files that cannot be reliably read.
 
-### Process_Folder as a pre-step, not a replacement for B1_Importer
-`Process_Folder.bas` handles file selection and org/submission matching only. It does not contain any import logic. `B1_Importer.bas` remains the single-file importer and is called by `Process_Folder` once a valid match is confirmed. This keeps the two concerns separate and leaves `B1_Importer` available for direct use if needed.
+### Process_Folder as orchestrator, not importer
+`B4_Process_Folder.bas` handles file selection and org/submission matching only. It calls B5 for validation and B1 for import. It does not contain validation or import logic itself.
 
 ### SubmissionFilePath renamed to SubmissionFolderPath
-The `SubmissionFilePath` named range and Config sheet label have been renamed to `SubmissionFolderPath`. The cell holds the folder path of the last-used file picker location. `B1_Importer.bas` still references the old name and will be updated when the real importer call is wired into `Process_Folder`.
+The `SubmissionFilePath` named range and Config sheet label have been renamed to `SubmissionFolderPath`. The cell holds the folder path of the last-used file picker location. `B1_Importer.bas` still references the old name and will be updated in Session D.
+
+### B1_Importer to accept parameters, not named ranges
+`FileImporter` will be updated to accept file path and submission ID as parameters passed by `B4_Process_Folder`. It will no longer read `SubmissionFolderPath` from the Config named range. All validation logic will be removed — file validation is B5's responsibility, and by the time B1 is called the file has already been validated and matched.
+
+### Separation of response validation and duplicate detection into distinct modules
+Response validation (orange cell colouring) and duplicate detection (green cell colouring) are separate concerns and are implemented in separate modules:
+
+- **B6_Response_Validator:** validates response text against the Drop downs sheet locally; no API calls required; produces orange cell colouring for invalid responses
+- **B7_Duplicate_Detector:** calls the API to retrieve existing case codes and responses; compares against imported rows; produces green cell colouring for likely-already-imported rows
+
+Rationale: the two operations have different dependencies (local vs API), different outputs, and are independently testable. Separating them keeps each module focused and makes debugging straightforward.
+
+### Managing Frailty as primary build target; Virtual Ward as amendment
+The tool is built and fully tested against Managing Frailty (Project 35) before Virtual Ward (Project 68) is introduced. Virtual Ward is treated as an amendment to the proven Managing Frailty build rather than a parallel workstream. This reduces risk: Managing Frailty has no DT questions, making it the simpler test case. Virtual Ward introduces the DT question type and will be the point at which DT handling is confirmed end-to-end.
+
+### File validation via Config-driven checks: MandatorySheets and SpotChecks
+`B5_File_Validator` is config-driven rather than hardcoded. Two new named ranges on the Config sheet control what is checked:
+
+- **`MandatorySheets`** (Config!B14): `^`-delimited list of sheet names that must be present in the submitted file (e.g. `CCR^Support`)
+- **`SpotChecks`** (Config!B15): `^`-delimited list of cell checks, each in the format `SheetName!CellRef:ExpectedValue` (e.g. `CCR!BB4:Patient 50`)
+
+This design means validation rules can be adjusted per tool instance by changing Config values only — no VBA changes required. SpotChecks are targeted at structural anchors (first/last patient column headers, section headers, question type labels) to catch row and column deletions or insertions that would break the importer.
+
+The Support sheet check (Check 2) is the only non-configurable check — it uses XLookup to validate Project ID, Submission Period, Spec Type, and Organisation Name against Config values and known constants. This is the same pattern used by B4 to read org name and submission descriptor.
+
+### openpyxl drops Form Controls on save — .xlsm hands-off once buttons are present
+openpyxl silently drops Excel Form Controls (buttons) when saving a `.xlsm` file, even when loading an existing file rather than creating a new one. Once buttons have been added to the workbook, the `.xlsm` must never be passed through the MCP `write_excel` tool. All future workbook changes are applied directly in Excel by the user, with Claude providing an exact instruction list of values, named ranges, and formatting to apply.

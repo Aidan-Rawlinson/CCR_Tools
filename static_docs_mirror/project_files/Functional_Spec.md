@@ -17,27 +17,38 @@ Both tools share identical functionality. They differ only in configuration (pro
 ### 1. Select environment
 The user confirms whether the tool is pointed at the Test or Live database via the Environment toggle on the Config sheet. Default is Test.
 
-### 2. Enter Project ID and select organisation
-The user confirms the Project ID (pre-populated, fixed per tool instance) and selects the submitting organisation from the drop-down on the Home sheet.
+### 2. Populate organisation and submission list
+The user clicks the Populate Submissions button. The tool calls the API and populates the Orgs sheet with all organisations and submissions for the project. This must be done before files can be processed.
 
-### 3. Retrieve submissions
-The user clicks the Retrieve Submissions button. The tool calls the API to fetch all submissions for the selected organisation and populates a drop-down list. The user selects the correct submission.
+### 3. Select and process files
+The user clicks the Process Files button. A multi-select file picker opens, defaulting to the folder used on the previous run. The user selects one or more submitted template files.
 
-### 4. Enter file path and import rows
-The user pastes the file path of the received template into the Config sheet and clicks the Import button. The tool opens the template, reads all patient columns, and populates the Home sheet with one row per patient.
+For each selected file, the tool runs the following sequence automatically:
 
-### 5. Review imported data
-The tool automatically performs two checks and colour-codes the cells:
+**a. File validation**
+The tool checks that the file is a valid questionnaire file — correct sheet present, data in the expected structure, configuration alignment confirmed. Files that fail validation are skipped with a message; the user does not proceed to matching for an invalid file.
+
+**b. Org/submission matching**
+The tool reads the organisation name and submission descriptor from the file and attempts to match against the populated Orgs sheet:
+- **No match:** file is skipped with a message
+- **One match:** user is shown the match and asked to confirm before proceeding
+- **Multiple matches:** user is shown all matches and asked to select the correct one before proceeding
+
+**c. Import**
+Once matched and confirmed, the tool imports the file: reads all patient columns from the template and writes one row per patient to the Home sheet.
+
+### 4. Review imported data
+After all files have been processed, the tool performs response validation and colour-codes the cells:
 - **Orange:** the response text does not match any valid value in the Drop downs lookup sheet (invalid response)
 - **Green:** a matching case code already exists in the database and the response matches what is stored (likely already imported)
 - **No colour:** response is valid and not yet imported
 
-The user reviews the imported rows. Orange cells must be corrected before import. Green rows should be deselected from import (column F set to "No") unless re-import is intended.
+The user reviews the imported rows. Orange cells must be corrected before posting. Green rows should be deselected (column F set to "No") unless re-import is intended.
 
-### 6. Select rows for import
-The user confirms which rows to import by setting column F to "Yes" or "No". The tool pre-populates this column based on its duplicate detection logic, but the user has final control.
+### 5. Select rows for import
+The user confirms which rows to post by setting column F to "Yes" or "No". The tool pre-populates this column based on duplicate detection, but the user has final control.
 
-### 7. Import to database
+### 6. Post to database
 The user clicks the Import Data to Database button. The tool processes each selected row sequentially:
 1. Converts each response text to the corresponding list item ID (for list-select questions)
 2. Builds the response payload
@@ -56,12 +67,10 @@ On completion, a confirmation message is displayed.
 
 | Input | Source | Notes |
 |---|---|---|
-| Submitted template file | File path entered by user | `.xlsx` format; sheet name `CCR`; questions in rows, patients in columns |
+| Submitted template files | Multi-select file picker | `.xlsx` format; sheet name `CCR`; questions in rows, patients in columns |
 | Project ID | Config sheet (pre-populated) | Fixed per tool instance |
 | Service ID | Config sheet (pre-populated) | 0 for both new projects |
 | Submission year | Config sheet (pre-populated) | `2026` |
-| Organisation | Drop-down on Home sheet | Drawn from Orgs sheet |
-| Submission | Drop-down on Home sheet | Retrieved via API |
 | Environment toggle | Config sheet | `Test` or `Live` |
 | Credentials | Config sheet | Username and password for API authentication |
 
@@ -72,19 +81,31 @@ On completion, a confirmation message is displayed.
 | Case codes | TBN database (via API) | One per imported patient row |
 | Survey responses | TBN database (via API) | One set per case code |
 | Case code notes | TBN database (via API) | Unique reference ("Patient N") stored in note field |
-| Import status | Home sheet column I | Case code written back after successful import |
-| Import toggle | Home sheet column F | Set to "No" after successful import |
+| Import status | Home sheet column I | Case code written back after successful post |
+| Import toggle | Home sheet column F | Set to "No" after successful post |
 
 ---
 
 ## Validation Rules
 
+### File validation (before import)
+| Rule | Response |
+|---|---|
+| File cannot be opened | File skipped with message |
+| Expected sheet not present | File skipped with message |
+| Data not in expected structure or position | File skipped with message |
+
+### Response validation (after import)
 | Rule | Trigger | Response |
 |---|---|---|
 | Response text not in Drop downs | On import from template | Cell coloured orange; user must correct before posting |
 | Case code already exists for this reference | On import from template | Row pre-set to "No"; cells coloured green if responses match |
-| Case code creation failed | During database post | Error message shown; row skipped |
-| Survey post failed | During database post | Error message shown; row skipped |
+
+### Post validation (during database post)
+| Rule | Response |
+|---|---|
+| Case code creation failed | Error message shown; row skipped |
+| Survey post failed | Error message shown; row skipped |
 
 ---
 
@@ -92,4 +113,4 @@ On completion, a confirmation message is displayed.
 - Template files must be stored on a local drive (not a SharePoint URL)
 - Maximum patients per file: 50 (Managing Frailty) / 75 (Virtual Ward)
 - The tool cannot guarantee integrity of previously submitted rows if the template has been edited after submission
-- Manual verification by the user is required before import
+- Manual verification by the user is required before posting

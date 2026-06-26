@@ -193,3 +193,43 @@
 - End-of-run summary: files selected / processed / skipped
 - Tested against four files covering all three cases — all working first time, message boxes confirmed ideal
 - **Architectural decision:** `Process_Folder` is a pre-step to the importer, not a replacement; `B1_Importer.bas` left untouched this session
+
+## Design Session — 26 June 2026
+
+**Outcome:** Module structure, separation of concerns, and session plan agreed. All documentation updated.
+
+- Two problems identified and resolved:
+  1. Module separation for validation concerns had not been fully thought through
+  2. The data flow redesign (Sessions 10, A, B) had not been reflected in any documentation — static specs and dynamic docs all described the original single-file-path flow
+- **Processing sequence agreed:** Pick (B4) → Validate file (B5) → Match (B4) → Import (B1)
+- **Module structure agreed:**
+  - `B5_File_Validator` — structural and content validation of questionnaire files; runs before matching; no API calls
+  - `B6_Response_Validator` — response text validation; orange cell colouring; local Drop downs lookup only
+  - `B7_Duplicate_Detector` — duplicate detection via API; green cell colouring; separate module from B6
+- **Managing Frailty established as primary build target**; Virtual Ward treated as a subsequent amendment session
+- **Session plan agreed:** C (B5), D (wire B4→B5→B1, read-in test), E (create CCR records test), F (B6), G (B7), H (end-to-end test), I (Managing Frailty instance), J (Virtual Ward)
+- All five documents updated: `Functional_Spec.md`, `Architecture_Design.md`, `Technical_Spec.md`, `Current_State.md`, `Next_Session.md`
+- `Decisions.md` updated with new decisions: processing sequence, B1 parameter change, B6/B7 separation, Managing Frailty as primary target
+
+## Session C — 26 June 2026
+
+**Outcome:** `B5_File_Validator.bas` built and wired into `B4_Process_Folder.bas`. Validation pipeline ready to test. Key workbook constraint clarified.
+
+- Validation design agreed collaboratively before any code was written:
+  - **Check 1:** Mandatory sheets — `^`-delimited list in new Config named range `MandatorySheets`
+  - **Check 2:** Support sheet field validation — XLookup for Project ID, Submission Period, Spec Type, Organisation Name; first two matched against Config named ranges, third against constant `"Clinical Case Review"`, fourth checked non-blank
+  - **Check 3:** Spot checks — `^`-delimited list of `SheetName!CellRef:ExpectedValue` tokens in new Config named range `SpotChecks`; 10 checks targeting structural anchors across the Managing Frailty CCR sheet (first/last patient column headers, section headers, question type labels, fixed column headers)
+- B5 receives an already-open `Workbook` object from B4 — file open/fail handled by B4 before B5 is called
+- Each failed check produces a specific MsgBox and returns `False` to B4; B4 closes the file and skips
+- `B4_Process_Folder.bas` updated:
+  - Removed hardcoded `Support!B5` / `B6` cell reads and early Support sheet check
+  - Calls `File_Validator.ValidateFile` immediately after open
+  - Reads org name and submission descriptor via XLookup on Support sheet (consistent with B5 pattern)
+  - `ProcessValidFile` stub comment updated to reflect current session
+- `B3_Submissions.bas`: `Option Private Module` removed (had been missed from Session A tidy-up)
+- Config sheet updated (by user directly in Excel):
+  - Row 14: `Mandatory Sheets` / `CCR^Support` / named range `MandatorySheets`
+  - Row 15: `Spot Checks` / 10-check string / named range `SpotChecks`
+- **Constraint confirmed:** openpyxl drops Form Controls on save — `.xlsm` must never be passed through `write_excel` once buttons are present; all future workbook changes applied directly in Excel by user
+- All `.bas` modules reimported by user; buttons reinstated
+- Modules to reimport in Session D: `B1_Importer.bas`, `B4_Process_Folder.bas`
