@@ -331,3 +331,42 @@
 - **For Each iteration instability:** user applied `.Cells` to `Rng_DataRows` declaration (`Rng_FullDataArea.Columns(1).Cells`) and `Rng_Cell.Cells(1)` throughout — resolves VBA range iteration instability on derived column ranges
 - **API test results:** YN, N, TX all posting correctly first time. LS posting correctly after lookup fix. Case codes created, responses posted, case codes closed. Case code written back to column K. Yes flipped to No.
 - All four modules (`A2`, `A3`, `B1`, `B4`) reimported by user after session fixes confirmed
+
+## Session H — 27 June 2026
+
+**Outcome:** B7_Duplicate_Detector built. Virtual Ward groundwork substantially complete. DT handling fully resolved. LS numeric matching fixed.
+
+- **B7_Duplicate_Detector.bas** built:
+  - Runs after B6, called from B4 with same `Lng_RunFirstRow` / `Lng_RunLastRow` parameters
+  - Pure Home sheet logic — no API calls
+  - For each new row, checks Sub ID (col J) + Unique Ref (col L) against all rows above `Lng_FirstRow`
+  - On match: sets col F to No; colours all response cells green; runs cell-level comparison against matching earlier row; mismatches coloured orange (overrides green); logs duplicate record and each mismatch to Error Log
+  - Error Log not cleared by B7 — B6 clears it; B7 appends
+  - Summary MsgBox on completion
+
+- **DT question handling fully resolved:**
+  - `B6a_DT_Converter.bas` — new module; runs between B1 import and B6 validation
+  - For each DT column: runs `TextToColumns` with `xlDMYFormat` on the imported row range to parse DD/MM/YYYY text as date serials; then iterates cells — formats each as Text (`@`) before writing `YYYY-MM-DD 00:00:00.000` string to prevent Excel re-interpreting on write-back
+  - `B1_Importer.bas` reverted to clean original — DT values written as-is; B6a owns conversion
+  - `B6_Response_Validator.bas` updated — DT validation now checks for `YYYY-MM-DD 00:00:00.000` format and date range rather than numeric serials; `IsValidDTString` private function added
+  - `A3_API_Calls.bas` — DT case unchanged in behaviour; comment updated to clarify cell already holds formatted string from B6a
+
+- **B4_Process_Folder.bas** updated:
+  - Post-import call sequence: `B6a_DT_Converter` → `B6_Response_Validator` → `B7_Duplicate_Detector`
+  - VW fallback lookup added for Support sheet — if "Submission Name" returns blank or "0", tries "Virtual Ward Name" (structural difference in VW template)
+
+- **LS numeric matching fixed:**
+  - B6: `Str_Response` now assigned with `CStr()` at point of read; Drop downs scan uses `Trim(CStr(...))` on lookup value
+  - A3: LS case reads response with `CStr()` before XLookup
+  - Root cause: Rockwood score question stores numeric list items (1–9); Excel converts these to numbers on import; string comparison was failing
+
+- **Virtual Ward groundwork:**
+  - VW_Data.xlsx produced with correct Config (Project ID 68, DataMax 75, SpotChecks for VW template), Home rows 2–6 (33 questions, correct types/QIDs/row positions/headers), Drop downs (18 LS questions, all list items)
+  - Ethnicity column gap fixed (Mixed, Other, Unknown were missing)
+  - Three VW test files generated via `populate_vw_test_files.py`: Essex Partnership (75 patients), Bromley Healthcare (10), Cornwall Partnership (10)
+  - DropDownQs named range must be extended to `$A$1:$AI$1` in VW workbook instance
+
+- **Open items carried forward:**
+  - Drop downs numeric columns (Rockwood scores) must be formatted as Text in workbook before importing modules
+  - VW workbook instance not yet built
+  - API `questionType` string for DT still to be confirmed with API team

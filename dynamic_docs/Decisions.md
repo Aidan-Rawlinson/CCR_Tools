@@ -184,3 +184,15 @@ The original `API_PostSurvey` payload builder appended a comma after each item e
 
 ### LS lookup: search even column (item text), return odd column (item ID)
 The Drop downs sheet structure is: odd columns hold QID (row 1), question label (row 2), list item IDs (row 3+); even columns hold blank (rows 1–2), response text (row 3+). The LS lookup in A3 must search the even column (response text) to find a match and return the adjacent odd column (item ID). The original code had this inverted. The corrected lookup targets `Lng_QuestionLookupCol + 1` for the search range (starting row 3) and offsets `(0, -1)` for the return range.
+
+### B7_Duplicate_Detector: pure Home sheet logic, no API calls
+Duplicate detection compares newly imported rows against previously imported rows already on the Home sheet, using Sub ID (column J) + Unique Ref (column L) as the composite key. No API calls are made. This is possible because rows persist on the Home sheet — clear is no longer an option once data has been posted. On a match: column F set to No; response cells coloured green; cell-level comparison run against the matching earlier row; mismatches coloured orange. Both the duplicate record and each mismatch are logged to the Error Log sheet (appended after B6 entries; B7 does not clear the log).
+
+### DT conversion moved to B6a_DT_Converter; B1 reverted to original
+DT question values are written as-is by B1 (raw Excel serial or text string). A new module, `B6a_DT_Converter`, runs immediately after all files have been imported and before B6 validation. For each DT column, it runs `TextToColumns` with `xlDMYFormat` on the imported row range — this parses DD/MM/YYYY text strings and date serials consistently regardless of regional settings. Each cell is then formatted as Text (`@`) before the `YYYY-MM-DD 00:00:00.000` string is written back, preventing Excel from re-interpreting the string as a date on write. B6 validation for DT checks the formatted string rather than a numeric serial.
+
+### LS numeric list items: CStr() on both sides of comparison
+Some LS questions (e.g. Rockwood Clinical Frailty Scale scores: 1–9) have numeric list item text values. Excel may convert these to numbers when reading from the template, causing string comparisons to fail. The fix is to use `CStr()` on the response value at the point of reading in both B6 (validation scan) and A3 (XLookup input). The Drop downs sheet lookup range for XLookup must store these values as Text — numeric columns in the Drop downs sheet must be formatted as Text before data is entered.
+
+### VW Support sheet uses "Virtual Ward Name" not "Submission Name"
+The Virtual Ward template's Support sheet uses `A6 = "Virtual Ward Name"` rather than `"Submission Name"`. This is a structural inconsistency in the questionnaire templates that cannot be corrected retrospectively. B4 handles it with a fallback XLookup: if the "Submission Name" lookup returns blank or "0", a second lookup is attempted for "Virtual Ward Name". No config change or code generalisation — deliberate bodge, noted here for awareness.

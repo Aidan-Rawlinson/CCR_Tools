@@ -13,7 +13,8 @@ Option Explicit
 '
 ' Returns Lng_FirstRow and Lng_LastRow as ByRef output
 ' parameters so B4 can track the full row range imported
-' across the run and pass it to B6_Response_Validator.
+' across the run and pass it to B6a_DT_Converter,
+' B6_Response_Validator, and B7_Duplicate_Detector.
 '
 ' Finds the next empty row on the Home sheet and appends;
 ' does not clear existing data (clearing is handled by B4
@@ -27,6 +28,9 @@ Option Explicit
 '   Col J (DataArea - 2)       -- Sub ID
 '   Col L (DataArea)           -- Unique Ref
 '   Col M+ (QuestionCols)      -- Question responses
+'
+' DT question values are written as-is; B6a_DT_Converter
+' handles parsing and formatting after all files are imported.
 '
 ' Skips any patient position where all question cells are blank
 ' (threshold: at least 1 non-blank response required to import).
@@ -106,12 +110,12 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
                 Str_UniqueRef = Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_Record).Value
 
                 '--Write process toggle, org name, submission name, org ID, sub ID, and unique reference to Home
-                Wsh_Home.Cells(Lng_PasteRow, Rng_FullDataArea.Column).Value = "Yes"          '--Col F
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 5).Value = Str_OrgName    '--Col G
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_SubName    '--Col H
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Lng_OrgId      '--Col I
+                Wsh_Home.Cells(Lng_PasteRow, Rng_FullDataArea.Column).Value = "Yes"            '--Col F
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 5).Value = Str_OrgName      '--Col G
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_SubName      '--Col H
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Lng_OrgId        '--Col I
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID '--Col J
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef      '--Col L
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef        '--Col L
 
                 '--Write question responses using StartCols to find source row for each question
                 Lng_ColIndex = 2 '--Start at second cell in StartCols (questions only)
@@ -160,12 +164,12 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
                 Str_UniqueRef = Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, 1).Value).Value
 
                 '--Write process toggle, org name, submission name, org ID, sub ID, and unique reference to Home
-                Wsh_Home.Cells(Lng_PasteRow, Rng_FullDataArea.Column).Value = "Yes"          '--Col F
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 5).Value = Str_OrgName    '--Col G
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_SubName    '--Col H
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Lng_OrgId      '--Col I
+                Wsh_Home.Cells(Lng_PasteRow, Rng_FullDataArea.Column).Value = "Yes"            '--Col F
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 5).Value = Str_OrgName      '--Col G
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_SubName      '--Col H
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Lng_OrgId        '--Col I
                 Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID '--Col J
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef      '--Col L
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef        '--Col L
 
                 '--Write question responses using StartCols to find source column for each question
                 Lng_ColIndex = 2 '--Start at second cell in StartCols (questions only)

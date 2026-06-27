@@ -52,7 +52,9 @@ Sub PostSurveyData()
 
                         Case "LS"
 
-                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
+                        '--CStr() used on both response and lookup values to handle numeric list items
+                        '--e.g. Rockwood scores which Excel may store as numbers
+                        Str_QResponse = CStr(Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value)
                         If Str_QResponse <> "" Then
                             i = i + 1
                             ReDim Preserve Var_ResponsesArray(1 To 3, 1 To i)
@@ -104,6 +106,8 @@ Sub PostSurveyData()
 
                         Case "DT"
 
+                        '--Cell holds YYYY-MM-DD 00:00:00.000 string written by B6a_DT_Converter
+                        '--Pass directly as a quoted string; skip if blank
                         Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
                         If Str_QResponse <> "" Then
                             i = i + 1

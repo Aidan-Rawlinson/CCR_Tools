@@ -24,8 +24,11 @@ Option Explicit
 ' Org ID is read from column 1 of the Orgs sheet at the matched row
 ' and passed through to B1 for writing to the Home sheet.
 '
-' After all files processed, calls B6_Response_Validator if any
-' rows were imported, passing the full row range of the run.
+' After all files processed, calls the following in sequence
+' if any rows were imported, passing the full row range of the run:
+'   B6a_DT_Converter      -- parses and formats DT question cells
+'   B6_Response_Validator -- validates all response cells
+'   B7_Duplicate_Detector -- detects duplicate records
 '
 ' Clear prompt at start of run gives user the option to start
 ' fresh or append to existing Home sheet data. On clear:
@@ -103,7 +106,7 @@ Sub PickAndProcess()
     Dim Int_Skipped As Integer:         Int_Skipped = 0
     Dim Int_Total As Integer:           Int_Total = Dlg.SelectedItems.Count
 
-    '--Row tracking for B6 -- spans the full run across all files
+    '--Row tracking -- spans the full run across all files
     Dim Lng_RunFirstRow As Long:        Lng_RunFirstRow = 0
     Dim Lng_RunLastRow As Long:         Lng_RunLastRow = 0
     Dim Lng_FileFirstRow As Long
@@ -160,6 +163,14 @@ Sub PickAndProcess()
                         Wsh_Support.Columns(1), _
                         Wsh_Support.Columns(2), _
                         "")))
+        '--Fallback for Virtual Ward templates which use "Virtual Ward Name" instead of "Submission Name"
+        If Str_SubDescriptor = "" Or Str_SubDescriptor = "0" Then
+            Str_SubDescriptor = Trim(CStr(WorksheetFunction.XLookup( _
+                            "Virtual Ward Name", _
+                            Wsh_Support.Columns(1), _
+                            Wsh_Support.Columns(2), _
+                            "")))
+        End If
         On Error GoTo 0
 
         Wbk_Source.Close SaveChanges:=False
@@ -304,9 +315,11 @@ NextFile:
 
     Next i
 
-    '--Run response validation across all rows imported this run
+    '--Run post-import processing across all rows imported this run
     If Lng_RunFirstRow > 0 Then
+        Call B6a_DT_Converter.ConvertDTColumns(Lng_RunFirstRow, Lng_RunLastRow)
         Call B6_Response_Validator.ValidateResponses(Lng_RunFirstRow, Lng_RunLastRow)
+        Call B7_Duplicate_Detector.DetectDuplicates(Lng_RunFirstRow, Lng_RunLastRow)
     End If
 
     '--End of run summary

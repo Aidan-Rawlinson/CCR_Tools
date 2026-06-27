@@ -1,30 +1,34 @@
-<!-- Purpose: Claude's handoff note -- what to pick up, open questions, and suggested first steps for the next session. Written by Claude at session end. -->
+<!-- Purpose: Claude's handoff note -- what to pick up, open questions, and suggested first steps for the next session. Written by Claude each session. -->
 
-## Handoff for Session H — Build B7_Duplicate_Detector
+## Handoff for Session I — Build Virtual Ward Workbook Instance
 
 ### Context
-Session G is complete. The full pipeline is working end-to-end: import, validate responses (B6), post to database (A3), case code written back, Yes flipped to No. TX confirmed working with placeholder `"text"` questionType. LS lookup confirmed working after fixes to column direction and row start.
+Session H is complete. B7 is built and wired. B6a handles DT conversion. B4 has the VW fallback lookup. All module updates for LS numeric matching and DT are in place. VW_Data.xlsx contains the correct Config, Home rows 2–6, and Drop downs content ready to lift across.
 
-### What to do in Session H
-Build `B7_Duplicate_Detector.bas`. This module:
-- Runs after B6 (called from B4 after B6, or triggered separately — to be agreed)
-- Calls the API to retrieve existing case codes for the submission (`GetCaseCodeNote` in A2)
-- Compares the unique reference in column L against case code notes from the API
-- Colours rows green where a matching case code is found (likely already imported)
-- Sets column F to "No" for matched rows (pre-populates the toggle; user retains override)
-- Operates on current-run rows only (same first/last row range passed from B4)
+### What to do in Session I
 
-### Design questions to resolve at session start
-1. Should B7 be called automatically by B4 after B6, or triggered by a separate button?
-2. Green colouring — entire row, or just specific columns? Alex's tool coloured response cells green where values matched the database. Confirm desired scope.
-3. Should B7 also call `GetCaseCodeResponses` to do a cell-level response comparison (green = match, orange = mismatch on already-imported rows), or is reference-level detection sufficient for now?
+1. **Format Drop downs numeric columns as Text** — before lifting VW_Data.xlsx content across, ensure any Drop downs columns containing numeric list items (Rockwood scores: column S in VW Drop downs) are formatted as Text in the target workbook. This ensures XLookup in A3 matches correctly.
+
+2. **Build the Virtual Ward workbook instance** — create `CCR_Tool_VirtualWard.xlsm`:
+   - Start from CCR_Tool_Base.xlsm as the base (copy it)
+   - Lift Config data from VW_Data.xlsx (B2, B13, B14, B15 are the key differences from MF)
+   - Lift Home rows 2–6 from VW_Data.xlsx (question numbers, types, StartCols row numbers, QIDs, headers)
+   - Lift Drop downs content from VW_Data.xlsx
+   - Update all named ranges: DataArea, FullDataArea, QuestionCols, StartCols, TypeCols to cover correct column range for 33 VW questions (L through AR)
+   - Update DropDownQs named range to `'Drop downs'!$A$1:$AI$1`
+   - Import all .bas modules
+   - Reinstate buttons
+
+3. **End-to-end test — Virtual Ward** — use the three VW test files in test_inputs/ against the test database
 
 ### Watch points
-- `GetCaseCodeNote` in A2 currently filters to `dataSubmitted = "True"` and `completionStatus = "Completed"` — this means in-progress or failed case codes are not returned. Confirm this is the right filter for duplicate detection.
-- The unique reference in column L is "Patient 1", "Patient 2" etc. The case code note field holds the same string (written by A3 at post time). The comparison is a straight string match.
-- B7 needs the submission ID per row — available from column J (Sub ID).
+- VW template orientation is Columns, DataStart = E — same as MF
+- VW has 33 questions (L through AR on Home sheet), one DT question (62624, Referral date)
+- SpotChecks in Config are VW-specific — confirm they pass B5 validation against the test files
+- Essex Partnership has two submissions in the Orgs sheet — picker will present multiple-match case; confirm correct submission selected
+- B4 VW fallback (Support!A6 = "Virtual Ward Name") is already in the .bas file
 
 ### Pre-session checklist
-- [ ] Confirm B7 trigger mechanism (auto from B4 vs separate button)
-- [ ] Confirm green colouring scope
-- [ ] Confirm whether response-level comparison is in scope for this session
+- [ ] Confirm DropDownQs range column count for VW (should be A1:AI1 — 18 LS questions × 2 cols)
+- [ ] Confirm all named ranges updated correctly in VW workbook before importing modules
+- [ ] Confirm DT questionType string with API team before live posting

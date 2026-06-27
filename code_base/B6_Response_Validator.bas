@@ -11,13 +11,16 @@ Option Explicit
 '
 ' Validation rules:
 '   LS  -- response text must match a valid option in the Drop
-'           downs sheet for that question; no match → orange
+'           downs sheet for that question; no match → orange.
+'           Comparison uses CStr() on both sides to handle
+'           numeric list items (e.g. Rockwood scores) that
+'           Excel may have converted to numbers on import.
 '   YN  -- value must be exactly "Yes" or "No"; anything else → orange
 '   N   -- cell value must be numeric; fails → orange
 '   TX  -- must not be numeric; any non-blank text string is valid
-'   DT  -- must be a numeric Excel date serial within the
-'           valid range (1 Jun–31 Aug 2026: serials 46174–46269);
-'           non-numeric or out-of-range → orange
+'   DT  -- value must match YYYY-MM-DD 00:00:00.000 format and
+'           the date must fall within 1 Jun–31 Aug 2026;
+'           anything else → orange
 '
 ' Orange cells must be corrected by the user before posting.
 '
@@ -47,9 +50,9 @@ Sub ValidateResponses(Lng_FirstRow As Long, Lng_LastRow As Long)
     Dim Rng_DropDownQs As Range:        Set Rng_DropDownQs = Wsh_Dropdowns.Range("DropDownQs")
     Dim Rng_DataArea As Range:          Set Rng_DataArea = ThisWorkbook.Names("DataArea").RefersToRange
 
-    '--DT valid serial range: 1 Jun 2026 = 46174, 31 Aug 2026 = 46269
-    Const Lng_DT_Min As Long = 46174
-    Const Lng_DT_Max As Long = 46269
+    '--DT valid date range: 1 Jun 2026 to 31 Aug 2026
+    Const Str_DT_Min As String = "2026-06-01"
+    Const Str_DT_Max As String = "2026-08-31"
 
     '--Error log setup: clear sheet and write headers
     Wsh_ErrorLog.Cells.ClearContents
@@ -74,7 +77,7 @@ Sub ValidateResponses(Lng_FirstRow As Long, Lng_LastRow As Long)
     Dim Lng_Row As Long
     For Lng_Row = Lng_FirstRow To Lng_LastRow
 
-        '--Read unique reference for this row (DataArea column = col K)
+        '--Read unique reference for this row
         Dim Str_UniqueRef As String
         Str_UniqueRef = Wsh_Home.Cells(Lng_Row, Rng_DataArea.Column).Value
 
@@ -82,13 +85,13 @@ Sub ValidateResponses(Lng_FirstRow As Long, Lng_LastRow As Long)
         Dim Rng_QCell As Range
         For Each Rng_QCell In Rng_QuestionCols
 
-            '--Get type code for this column (TypeCols is same width, same column order)
+            '--Get type code for this column
             Dim Str_TypeCode As String
             Str_TypeCode = Rng_TypeCols.Cells(1, Rng_QCell.Column - Rng_QuestionCols.Column + 1).Value
 
             '--Get the response value for this cell
             Dim Str_Response As String
-            Str_Response = Wsh_Home.Cells(Lng_Row, Rng_QCell.Column).Value
+            Str_Response = CStr(Wsh_Home.Cells(Lng_Row, Rng_QCell.Column).Value)
 
             '--Skip blank responses -- no validation needed
             If Str_Response = "" Then GoTo NextQuestion
@@ -103,6 +106,7 @@ Sub ValidateResponses(Lng_FirstRow As Long, Lng_LastRow As Long)
 
                 '--Look up QID in DropDownQs row 1 to find the correct column pair
                 '--Odd column = list item IDs; even column (+1) = response text
+                '--CStr() used on both sides to handle numeric list items (e.g. Rockwood scores)
                 Dim Rng_QIDMatch As Range
                 Set Rng_QIDMatch = Nothing
                 On Error Resume Next
@@ -117,7 +121,7 @@ Sub ValidateResponses(Lng_FirstRow As Long, Lng_LastRow As Long)
                     Dim Lng_TextCol As Long:    Lng_TextCol = Rng_QIDMatch.Column + 1
                     Dim Lng_ScanRow As Long:    Lng_ScanRow = 3
                     Do While Wsh_Dropdowns.Cells(Lng_ScanRow, Lng_TextCol).Value <> ""
-                        If Trim(Wsh_Dropdowns.Cells(Lng_ScanRow, Lng_TextCol).Value) = Trim(Str_Response) Then
+                        If Trim(CStr(Wsh_Dropdowns.Cells(Lng_ScanRow, Lng_TextCol).Value)) = Trim(Str_Response) Then
                             Bln_Valid = True
                             Exit Do
                         End If
@@ -144,10 +148,9 @@ Sub ValidateResponses(Lng_FirstRow As Long, Lng_LastRow As Long)
 
             Case "DT"
 
-                '--Must be a numeric Excel date serial within 1 Jun–31 Aug 2026
-                If Not IsNumeric(Str_Response) Then
-                    Bln_Error = True
-                ElseIf CLng(Str_Response) < Lng_DT_Min Or CLng(Str_Response) > Lng_DT_Max Then
+                '--Must match YYYY-MM-DD 00:00:00.000 format (written by B6a) and
+                '--date portion must fall within 1 Jun–31 Aug 2026
+                If Not IsValidDTString(Str_Response, Str_DT_Min, Str_DT_Max) Then
                     Bln_Error = True
                 End If
 
@@ -183,3 +186,48 @@ NextQuestion:
     End If
 
 End Sub
+
+' ============================================================
+' IsValidDTString
+' ------------------------------------------------------------
+' Checks that a string matches YYYY-MM-DD 00:00:00.000 format
+' and that the date portion falls within the supplied min/max
+' date strings (also YYYY-MM-DD format).
+' ============================================================
+
+Private Function IsValidDTString(Str_Value As String, Str_Min As String, Str_Max As String) As Boolean
+
+    '--Must be exactly 23 characters: YYYY-MM-DD 00:00:00.000
+    If Len(Str_Value) <> 23 Then
+        IsValidDTString = False
+        Exit Function
+    End If
+
+    '--Must end with " 00:00:00.000"
+    If Right(Str_Value, 13) <> " 00:00:00.000" Then
+        IsValidDTString = False
+        Exit Function
+    End If
+
+    '--Extract date portion and validate as a real date
+    Dim Str_DatePart As String
+    Str_DatePart = Left(Str_Value, 10)
+
+    On Error Resume Next
+    Dim Dt_Date As Date
+    Dt_Date = CDate(Str_DatePart)
+    If Err.Number <> 0 Then
+        IsValidDTString = False
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    '--Check within valid range
+    If Str_DatePart < Str_Min Or Str_DatePart > Str_Max Then
+        IsValidDTString = False
+        Exit Function
+    End If
+
+    IsValidDTString = True
+
+End Function
