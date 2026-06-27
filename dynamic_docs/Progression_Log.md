@@ -274,3 +274,27 @@
 - **Test input files populated** with synthetic valid patient data via `populate_test_files.py` (written to `test_inputs/` and run directly by user): files 1 & 2 = 50 patients each, files 3 & 4 = 10 patients each; conditional logic respects blank rules (e.g. dementia timing only populated if dementia diagnosed)
 - **Session ordering corrected:** B6_Response_Validator must precede the first live API test — invalid responses will cause the API post to fail. Session plan updated accordingly (was E=API test, F=B6; now F=B6, G=API test).
 - Both modules reimported by user; confirmed working end-to-end with correct org name, sub name, and patient count on import
+
+## Session F — 26 June 2026
+
+**Outcome:** B6_Response_Validator built and passing. B1 and B4 updated. Error Log sheet added to workbook. Full import-and-validate pipeline confirmed working end-to-end.
+
+- **A3 reviewed** before building B6 — confirmed ready for Managing Frailty with no changes needed. DT placeholder `"date"` left in place pending API team confirmation. The unconditional `Rng_Cell.Offset(0, -4).Value = "No"` on all rows noted as harmless and left untouched (Alex's pattern).
+- **Functional spec corrected:** case code note field reference removed (column J receives the case code back from the API, not a unique reference string); response validation scope updated to current-run rows only; Error Log sheet added to outputs.
+- **Error Log sheet** added to workbook by user (blank, row 1 bolded). Minimalist export design — no panel formatting.
+- **`B1_Importer.bas` updated:** two `ByRef` output parameters added (`Lng_FirstRow`, `Lng_LastRow`) to enable B4 to track the run-wide row range. `Lng_FirstRow` set on first record written per call; `Lng_LastRow` updated on every record written.
+- **`B4_Process_Folder.bas` updated:**
+  - Run-wide row tracking variables added (`Lng_RunFirstRow`, `Lng_RunLastRow`, `Lng_FileFirstRow`, `Lng_FileLastRow`)
+  - File-level variables reset to 0 before each B1 call; if B1 writes anything they update the run-level trackers
+  - After file loop: if `Lng_RunFirstRow > 0`, calls `B6_Response_Validator.ValidateResponses`
+  - Clear path changed from `.ClearContents` to `.Clear` (wipes formatting as well as values)
+  - Grid borders reapplied after clear: four sides only (`xlEdgeTop`, `xlEdgeBottom`, `xlEdgeLeft`, `xlEdgeRight`, `xlInsideHorizontal`, `xlInsideVertical`) — diagonals explicitly excluded
+- **`B6_Response_Validator.bas` built:** validates all five question types on current-run rows only:
+  - LS: scans even column (QID col + 1) in Drop downs from row 3 downwards — bug found and fixed during testing (original code scanned odd column = list item IDs, not response text)
+  - YN: exact match "Yes" or "No"
+  - N: IsNumeric check
+  - TX: IsNumeric check (must not be numeric)
+  - DT: numeric serial within 46174–46269
+  - Error Log: cleared and re-headed each run; one row per error (Row, Unique Ref, Question ID, Question No., Question Type, Invalid Value)
+  - Summary MsgBox: count of errors found, or clean pass message
+- All three modules reimported by user; confirmed passing with no errors on clean synthetic data

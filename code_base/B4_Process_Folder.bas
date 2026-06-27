@@ -13,15 +13,22 @@ Option Explicit
 '     → Read org name and submission descriptor via XLookup on Support sheet
 '     → Close file
 '     → Org/submission matching decision tree
-'     → B1: FileImporter (file path, submission ID, org name, sub name)
+'     → B1: FileImporter (file path, submission ID, org name, sub name,
+'                         ByRef Lng_FirstRow, ByRef Lng_LastRow)
 '
 ' Matching decision tree:
 '   Case 1 - No org match:       message + skip, no user choice
 '   Case 2 - One submission:     Yes/No confirmation before process
 '   Case 3 - Multiple subs:      numbered InputBox + confirmation before process
 '
+' After all files processed, calls B6_Response_Validator if any
+' rows were imported, passing the full row range of the run.
+'
 ' Clear prompt at start of run gives user the option to start
-' fresh or append to existing Home sheet data.
+' fresh or append to existing Home sheet data. On clear:
+'   1. Formats and contents wiped (.Clear)
+'   2. Thin grid borders reapplied to FullDataArea (four sides
+'      only -- diagonals explicitly excluded)
 ' ============================================================
 
 Sub PickAndProcess()
@@ -39,7 +46,23 @@ Sub PickAndProcess()
                              vbQuestion + vbYesNo, "Clear Existing Data?")
 
     If Int_ClearChoice = vbYes Then
-        Rng_FullDataArea.ClearContents
+        '--Clear all contents and formatting (removes orange validation colouring from previous runs)
+        Rng_FullDataArea.Clear
+        '--Reapply thin grid borders -- four sides only, diagonals excluded
+        With Rng_FullDataArea
+            .Borders(xlEdgeTop).LineStyle = xlContinuous
+            .Borders(xlEdgeTop).Weight = xlThin
+            .Borders(xlEdgeBottom).LineStyle = xlContinuous
+            .Borders(xlEdgeBottom).Weight = xlThin
+            .Borders(xlEdgeLeft).LineStyle = xlContinuous
+            .Borders(xlEdgeLeft).Weight = xlThin
+            .Borders(xlEdgeRight).LineStyle = xlContinuous
+            .Borders(xlEdgeRight).Weight = xlThin
+            .Borders(xlInsideHorizontal).LineStyle = xlContinuous
+            .Borders(xlInsideHorizontal).Weight = xlThin
+            .Borders(xlInsideVertical).LineStyle = xlContinuous
+            .Borders(xlInsideVertical).Weight = xlThin
+        End With
     End If
 
     '--Build initial folder for dialog
@@ -76,6 +99,12 @@ Sub PickAndProcess()
     Dim Int_Processed As Integer:       Int_Processed = 0
     Dim Int_Skipped As Integer:         Int_Skipped = 0
     Dim Int_Total As Integer:           Int_Total = Dlg.SelectedItems.Count
+
+    '--Row tracking for B6 -- spans the full run across all files
+    Dim Lng_RunFirstRow As Long:        Lng_RunFirstRow = 0
+    Dim Lng_RunLastRow As Long:         Lng_RunLastRow = 0
+    Dim Lng_FileFirstRow As Long
+    Dim Lng_FileLastRow As Long
 
     '--Loop over selected files
     Dim i As Integer
@@ -185,7 +214,14 @@ Sub PickAndProcess()
             Str_Msg2 = Str_Msg2 & vbCrLf & vbCrLf & "Proceed with import?"
 
             If MsgBox(Str_Msg2, vbQuestion + vbYesNo, "Confirm Submission") = vbYes Then
-                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2, Str_OrgName, Str_SubName2)
+                Lng_FileFirstRow = 0
+                Lng_FileLastRow = 0
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2, Str_OrgName, Str_SubName2, _
+                                              Lng_FileFirstRow, Lng_FileLastRow)
+                If Lng_FileFirstRow > 0 Then
+                    If Lng_RunFirstRow = 0 Then Lng_RunFirstRow = Lng_FileFirstRow
+                    Lng_RunLastRow = Lng_FileLastRow
+                End If
                 Int_Processed = Int_Processed + 1
             Else
                 Int_Skipped = Int_Skipped + 1
@@ -232,7 +268,14 @@ Sub PickAndProcess()
                        "Processing will now begin.", _
                        vbInformation, "Submission Matched"
 
-                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3, Str_OrgName, Str_SubName3)
+                Lng_FileFirstRow = 0
+                Lng_FileLastRow = 0
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3, Str_OrgName, Str_SubName3, _
+                                              Lng_FileFirstRow, Lng_FileLastRow)
+                If Lng_FileFirstRow > 0 Then
+                    If Lng_RunFirstRow = 0 Then Lng_RunFirstRow = Lng_FileFirstRow
+                    Lng_RunLastRow = Lng_FileLastRow
+                End If
                 Int_Processed = Int_Processed + 1
 
             Else
@@ -253,6 +296,11 @@ NextFile:
         Set Wsh_Support = Nothing
 
     Next i
+
+    '--Run response validation across all rows imported this run
+    If Lng_RunFirstRow > 0 Then
+        Call B6_Response_Validator.ValidateResponses(Lng_RunFirstRow, Lng_RunLastRow)
+    End If
 
     '--End of run summary
     MsgBox "Processing complete." & vbCrLf & vbCrLf & _

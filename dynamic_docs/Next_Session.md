@@ -1,50 +1,27 @@
 <!-- Purpose: Claude's handoff note -- what to pick up, open questions, and suggested first steps for the next session. Written by Claude at session end. -->
 
-## Handoff for Session F — Build B6_Response_Validator
+## Handoff for Session G — First Live API Test
 
 ### Context
-Session E is complete. The workbook is fully configured for Managing Frailty, test files are populated, and the import pipeline is working end-to-end. B6 must be built and verified before any live API testing can begin — invalid responses will cause the API post to fail.
+Session F is complete. B6 is built, tested, and passing cleanly on all five question types. The full pipeline — pick, validate, match, import, validate responses — is working end-to-end. The tool is ready for live API testing against the test database.
 
-### Why B6 must come before the API test
-The API import will reject records with invalid response values. B6 is the user's signal to correct data before posting. Running the post against unvalidated data risks creating partial or corrupt case codes against the test database.
+### Gate
+Session G is blocked on test database access. This must be confirmed available before starting.
 
-### B6 scope — three question types to validate
+### What to do in Session G
+1. Confirm credentials are entered in Config (APIUsername / APIPassword)
+2. Confirm Toggle is set to Test
+3. Run Populate Submissions — verify Orgs sheet populates correctly for Managing Frailty (Project 35)
+4. Process one test file — verify import, B6 validation, and Home sheet layout all look correct
+5. Post one row — step through A3 manually if needed; verify case code written back to column J
+6. Check the test database directly via SSMS to confirm the record landed correctly
 
-| Type | Validation rule | Failure response |
-|---|---|---|
-| `LS` | Response text must match one of the valid options for this question in the Drop downs sheet | Colour cell orange |
-| `N` | Cell value must be numeric (IsNumeric check) | Colour cell orange |
-| `TX` | No validation needed — blank cells are skipped at post time per existing architecture; non-blank text always valid | No action |
-| `YN` | No validation needed — values can only be Yes/No from template drop-down | No action |
-| `DT` | Parked — not present in Managing Frailty | Not in scope for this session |
-
-### Design notes for B6
-
-**Inputs:** Home sheet data area — all rows in `FullDataArea` where column F is not blank.
-
-**Named ranges available:**
-- `TypeCols` — row 3, K onwards: question type code per column
-- `QuestionCols` — row 5, K onwards: QID per column
-- `DropDownQs` — Drop downs row 1: QIDs in odd columns (A, C, E...) — used to locate the right column pair
-- `DataArea` — data rows starting at K7
-
-**LS lookup logic:** for a given cell, read its QID from `QuestionCols`, find the matching column in `DropDownQs`, then check whether the cell value matches any item in the response text column (even column, rows 3+) for that question. If no match → orange.
-
-**N check:** `IsNumeric(cell.Value)` — if False → orange.
-
-**TX and YN:** skip — no colouring applied.
-
-**Orange colour:** use Alex's convention — interior colour RGB or the standard orange. Check `Colour_Palette.md` — orange is applied dynamically at runtime (not in the static palette) but Alex's code is the reference for the exact colour used.
-
-**Scope:** run across all data rows on Home, not just the most recently imported batch. This matches Alex's pattern and allows B6 to be re-run after manual corrections.
-
-**When called:** B6 is triggered by a separate button on the Home sheet, run after all files have been imported and before the user posts to the database. It is not called automatically by B4.
-
-### Session F goals
-1. Review A3_API_Calls.bas to confirm the post flow is ready for Managing Frailty — do this before building B6 so any issues are known
-2. Design B6 collaboratively (orange colour value, loop structure, LS lookup approach) before writing code
-3. Build and test B6 against the populated test files
+### Watch points
+- A3 reads `Rng_DataRows` as column 5 of `FullDataArea` — this is column J (CaseCode), not column K (Unique Ref). Double-check the offset arithmetic lands on column F for the Yes/No toggle before posting.
+- The `Lng_OrgId` split on `"-"` in A3 (`Split(Rng_Cell.Offset(0, -3).Value, "-")(0)`) — column I holds the Sub ID (a plain integer), not an org-dashed string. Verify this doesn't error on clean data; if it does, a small fix to read org ID differently will be needed.
+- TX and DT questionType strings in A3 are placeholders (`"text"` and `"date"`). These may or may not be correct — if the API rejects them, note the error response and flag for the API team.
 
 ### Pre-session checklist
-- [ ] Confirm test database access is available (needed for Session G, not F)
-- [ ] Confirm API `questionType` strings for `TX` and `DT` with API team (not blocking F)
+- [ ] Test database access confirmed
+- [ ] Credentials available for Config entry
+- [ ] At least one clean test file ready (files 1–4 in test_inputs/ are pre-populated)

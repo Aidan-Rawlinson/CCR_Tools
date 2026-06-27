@@ -10,6 +10,10 @@ Option Explicit
 ' Accepts file path, submission ID, org name, and submission
 ' name as parameters. No validation logic -- B5 owns that.
 '
+' Returns Lng_FirstRow and Lng_LastRow as ByRef output
+' parameters so B4 can track the full row range imported
+' across the run and pass it to B6_Response_Validator.
+'
 ' Finds the next empty row on the Home sheet and appends;
 ' does not clear existing data (clearing is handled by B4
 ' at the start of the process run).
@@ -23,7 +27,8 @@ Option Explicit
 ' ============================================================
 
 Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
-                 ByVal Str_OrgName As String, ByVal Str_SubName As String)
+                 ByVal Str_OrgName As String, ByVal Str_SubName As String, _
+                 ByRef Lng_FirstRow As Long, ByRef Lng_LastRow As Long)
 
     Dim Wsh_Home As Worksheet:              Set Wsh_Home = ThisWorkbook.Worksheets("Home")
     Dim Wbk_Source As Workbook
@@ -82,6 +87,9 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
 
             If Bln_HasData Then
 
+                '--Record first row written (only set once per call)
+                If Lng_ImportedCount = 0 Then Lng_FirstRow = Lng_PasteRow
+
                 '--Read unique reference using the row number stored in StartCols(1)
                 Str_UniqueRef = Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_Record).Value
 
@@ -103,6 +111,7 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
                     End If
                 Next Rng_Cell
 
+                Lng_LastRow = Lng_PasteRow
                 Lng_PasteRow = Lng_PasteRow + 1
                 Lng_ImportedCount = Lng_ImportedCount + 1
 
@@ -130,6 +139,9 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
 
             If Bln_HasData Then
 
+                '--Record first row written (only set once per call)
+                If Lng_ImportedCount = 0 Then Lng_FirstRow = Lng_PasteRow
+
                 '--Read unique reference using the column number stored in StartCols(1)
                 Str_UniqueRef = Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, 1).Value).Value
 
@@ -151,6 +163,7 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
                     End If
                 Next Rng_Cell
 
+                Lng_LastRow = Lng_PasteRow
                 Lng_PasteRow = Lng_PasteRow + 1
                 Lng_ImportedCount = Lng_ImportedCount + 1
 

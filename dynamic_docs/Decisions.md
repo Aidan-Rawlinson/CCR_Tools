@@ -152,11 +152,23 @@ The replacement logic iterates all question positions in `StartCols` (index 2 on
 ### B6 must precede the first live API test
 B6_Response_Validator must be built and verified before any records are posted to the database. The API import will fail if responses are invalid — for example, an LS response that does not match a valid list item ID cannot be converted and will cause the post to error. Orange cells are the user's signal to correct data before posting. Running a post against unvalidated data risks creating partial or corrupt case codes against the test database.
 
-### B6 response validation scope: LS, N, TX, YN — DT parked
-B6 validates three question types relevant to Managing Frailty:
+### B6 response validation scope: current-run rows only
+B6 validates only the rows imported in the current run, not all rows present on the Home sheet. B4 passes the first and last row numbers written during the run (tracked via ByRef parameters on B1). This is the correct scope because: (a) previously imported rows may have been deliberately corrected by the user and should not be re-validated; (b) orange cell state from a previous run is cleared by the `.Clear` operation at the start of a new run.
 
-- **LS:** response text must match one of the valid options for that question in the Drop downs sheet. Lookup is by QID: find the question's column in `DropDownQs` (row 1), then check the cell value against response text items in the even column from row 3 downwards.
-- **N:** cell value must pass `IsNumeric()`. Non-numeric values flagged orange.
-- **TX:** no validation applied. Non-blank text is always valid; blank cells are skipped at post time per existing architecture.
-- **YN:** no validation applied. Values are constrained to Yes/No by the template drop-down.
-- **DT:** parked — not present in Managing Frailty. Will be addressed in the Virtual Ward session.
+### B6 validates all five question types; no assumptions about template constraints
+B6 applies active validation rules to all five question types. Template drop-down constraints (e.g. Yes/No for YN questions) are not relied upon — users may have edited cells directly or submitted files with unexpected values. The rules are:
+
+- **LS:** response text must match a valid option in the Drop downs sheet (even column = text column; odd column = list item IDs)
+- **YN:** must be exactly "Yes" or "No"
+- **N:** must be numeric (IsNumeric check)
+- **TX:** must not be numeric; any non-blank text string is valid
+- **DT:** must be a numeric Excel date serial within 46174–46269 (1 Jun–31 Aug 2026)
+
+### Clear uses .Clear not .ClearContents; borders reapplied after clear
+When the user chooses to start fresh, `FullDataArea.Clear` is used rather than `.ClearContents`. `.Clear` wipes both cell values and formatting, ensuring orange validation colouring from a previous run does not persist. After clearing, thin grid borders are reapplied to `FullDataArea` using the six explicit border constants (`xlEdgeTop`, `xlEdgeBottom`, `xlEdgeLeft`, `xlEdgeRight`, `xlInsideHorizontal`, `xlInsideVertical`). Diagonal borders (`xlDiagonalDown`, `xlDiagonalUp`) are deliberately excluded.
+
+### Error Log sheet: minimalist export design
+The Error Log sheet is intentionally plain — no panel colours, no formatting beyond the user-applied bold on row 1. It is a diagnostic export tool, not a user-facing sheet. One row per validation error: Row, Unique Ref, Question ID, Question No., Question Type, Invalid Value. The sheet is cleared and re-headed at the start of each B6 run.
+
+### Case code column holds the case code returned by the API
+Column J on the Home sheet receives the case code written back by A3 after a successful post. It does not hold a unique reference string or any other value. The unique reference ("Patient 1" etc.) is in column K. This is consistent with A3's existing logic: `Rng_Cell.Offset(0, -1).Value = Str_CaseCode`.

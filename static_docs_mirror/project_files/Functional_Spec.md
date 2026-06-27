@@ -38,24 +38,28 @@ The tool reads the organisation name and submission descriptor from the file and
 Once matched and confirmed, the tool imports the file: reads all patient columns from the template and writes one row per patient to the Home sheet.
 
 ### 4. Review imported data
-After all files have been processed, the tool performs response validation and colour-codes the cells:
-- **Orange:** the response text does not match any valid value in the Drop downs lookup sheet (invalid response)
-- **Green:** a matching case code already exists in the database and the response matches what is stored (likely already imported)
-- **No colour:** response is valid and not yet imported
+After all files have been processed, the tool performs response validation on the rows just imported and colour-codes any invalid cells:
+- **Orange:** the response text does not match any valid value in the Drop downs lookup sheet (invalid response); must be corrected before posting
+- **No colour:** response is valid and ready to post
 
-The user reviews the imported rows. Orange cells must be corrected before posting. Green rows should be deselected (column F set to "No") unless re-import is intended.
+Response validation runs only on rows imported in the current run. Rows already present on the Home sheet from a previous run are not re-validated.
+
+An Error Log sheet records the detail of each validation failure — row number, unique reference, question ID, and the invalid value. This log is cleared at the start of each validation run. A summary message is shown on completion indicating how many errors were found.
+
+The user reviews any orange cells and corrects them before proceeding. Green cell colouring (duplicate detection) is handled separately by B7 and is not part of this step.
 
 ### 5. Select rows for import
-The user confirms which rows to post by setting column F to "Yes" or "No". The tool pre-populates this column based on duplicate detection, but the user has final control.
+The user confirms which rows to post by setting column F to "Yes" or "No". The tool pre-populates this column based on duplicate detection (B7), but the user has final control.
 
 ### 6. Post to database
 The user clicks the Import Data to Database button. The tool processes each selected row sequentially:
 1. Converts each response text to the corresponding list item ID (for list-select questions)
 2. Builds the response payload
-3. Creates a new case code via API, writing the unique reference ("Patient N") into the case code note field
+3. Creates a new case code via API
 4. Verifies the case code was created successfully
 5. Posts the response data to the database via API
 6. Sets the case code status to Completed
+7. Writes the case code back to column J on the Home sheet; sets column F to "No"
 
 If any step fails, the tool reports the failure and stops processing that row. Subsequent rows are not affected.
 
@@ -80,9 +84,9 @@ On completion, a confirmation message is displayed.
 |---|---|---|
 | Case codes | TBN database (via API) | One per imported patient row |
 | Survey responses | TBN database (via API) | One set per case code |
-| Case code notes | TBN database (via API) | Unique reference ("Patient N") stored in note field |
-| Import status | Home sheet column I | Case code written back after successful post |
+| Import status | Home sheet column J | Case code written back after successful post |
 | Import toggle | Home sheet column F | Set to "No" after successful post |
+| Validation errors | Error Log sheet | Row, unique reference, question ID, invalid value; cleared at start of each validation run |
 
 ---
 
@@ -95,11 +99,13 @@ On completion, a confirmation message is displayed.
 | Expected sheet not present | File skipped with message |
 | Data not in expected structure or position | File skipped with message |
 
-### Response validation (after import)
+### Response validation (after import — current run rows only)
 | Rule | Trigger | Response |
 |---|---|---|
-| Response text not in Drop downs | On import from template | Cell coloured orange; user must correct before posting |
-| Case code already exists for this reference | On import from template | Row pre-set to "No"; cells coloured green if responses match |
+| LS response text not in Drop downs | After import completes | Cell coloured orange; error logged; user must correct before posting |
+| N response is not numeric | After import completes | Cell coloured orange; error logged; user must correct before posting |
+
+Note: YN and TX responses are not validated. YN values are constrained by template drop-downs. TX accepts any non-blank text; blank TX cells are skipped at post time.
 
 ### Post validation (during database post)
 | Rule | Response |
