@@ -14,7 +14,7 @@ Sub PostSurveyData()
     Dim Str_QResponse As String
     Dim Var_LookupResponseId As Variant
     Dim Rng_FullDataArea As Range:              Set Rng_FullDataArea = ThisWorkbook.Names("FullDataArea").RefersToRange
-    Dim Rng_DataRows As Range:                  Set Rng_DataRows = Rng_FullDataArea.Columns(5) '--Unique Ref column (J) within FullDataArea
+    Dim Rng_DataRows As Range:                  Set Rng_DataRows = Rng_FullDataArea.Columns(1).Cells
     Dim Rng_QuestionCols As Range:              Set Rng_QuestionCols = ThisWorkbook.Names("QuestionCols").RefersToRange
     Dim Rng_TypeCols As Range:                  Set Rng_TypeCols = ThisWorkbook.Names("TypeCols").RefersToRange
     Dim Lng_OrgId As Long
@@ -29,50 +29,46 @@ Sub PostSurveyData()
     Dim Lng_Row As Long
     Dim Var_Result As VbMsgBoxResult:           Var_Result = vbYes
 
-    '--We take the rows that need to be imported and create an array of question ids and list item id responses
-
     For Each Rng_Cell In Rng_DataRows
+        If Rng_Cell.Cells(1).Value = "" Then Exit For
         Var_Result = vbYes
-        If Rng_Cell.Offset(0, -4).Value = "Yes" Then
-            If Rng_Cell.Offset(0, -1).Value <> "" Then
-                Var_Result = MsgBox("Row " & Rng_Cell.Row & " contains a value in the case code column. Do you wish to import the row?", vbYesNo, "Confirm Import")
+        If Rng_Cell.Cells(1).Value = "Yes" Then
+            If Rng_Cell.Cells(1).Offset(0, 5).Value <> "" Then
+                Var_Result = MsgBox("Row " & Rng_Cell.Cells(1).Row & " contains a value in the case code column. Do you wish to import the row?", vbYesNo, "Confirm Import")
             End If
             If Var_Result = vbYes Then
-            '--Reset array for each row
                 ReDim Var_ResponsesArray(1 To 3, 1 To 1)
                 i = 0
+
+                Lng_OrgId = CLng(Rng_Cell.Cells(1).Offset(0, 3).Value)
+                Str_SubID = CStr(Rng_Cell.Cells(1).Offset(0, 4).Value)
+
                 For Each Rng_Cell2 In Rng_QuestionCols
-                    '--Get the type code for this question from TypeCols at the same column position
                     Set Rng_TypeCell = Rng_TypeCols.Cells(1, Rng_Cell2.Column - Rng_QuestionCols.Column + 1)
 
                     If Rng_Cell2.Value <> "QID (hide)" Then
-                        Lng_OrgId = CInt(Trim(Split(Rng_Cell.Offset(0, -3).Value, "-")(0)))
-                        Str_SubID = Rng_Cell.Offset(0, -2).Value
 
                         Select Case Rng_TypeCell.Value
 
                         Case "LS"
 
-                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Row, Rng_Cell2.Column).Value
+                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
                         If Str_QResponse <> "" Then
                             i = i + 1
-                            '--Resize LAST dimension (allowed with Preserve)
                             ReDim Preserve Var_ResponsesArray(1 To 3, 1 To i)
                             Var_ResponsesArray(1, i) = Rng_Cell2.Value
-
                             Lng_QuestionLookupCol = Rng_DropDownQs.Find(what:=Rng_Cell2.Value, LookIn:=xlValues, Lookat:=xlWhole).Column
-                            Set Rng_LookupRange = Wsh_Dropdowns.Range(Wsh_Dropdowns.Cells(2, Lng_QuestionLookupCol), Wsh_Dropdowns.Cells(50, Lng_QuestionLookupCol))
-                            Var_LookupResponseId = Application.WorksheetFunction.XLookup(Trim(Str_QResponse), Rng_LookupRange, Rng_LookupRange.Offset(0, 1), "")
+                            Set Rng_LookupRange = Wsh_Dropdowns.Range(Wsh_Dropdowns.Cells(3, Lng_QuestionLookupCol + 1), Wsh_Dropdowns.Cells(200, Lng_QuestionLookupCol + 1))
+                            Var_LookupResponseId = Application.WorksheetFunction.XLookup(Trim(Str_QResponse), Rng_LookupRange, Rng_LookupRange.Offset(0, -1), "")
                             Var_ResponsesArray(2, i) = Var_LookupResponseId
                             Var_ResponsesArray(3, i) = "list"
                         End If
 
                         Case "YN"
 
-                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Row, Rng_Cell2.Column).Value
+                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
                         If Str_QResponse <> "" Then
                             i = i + 1
-                            '--Resize LAST dimension (allowed with Preserve)
                             ReDim Preserve Var_ResponsesArray(1 To 3, 1 To i)
                             Var_ResponsesArray(1, i) = Rng_Cell2.Value
                             If Str_QResponse = "Yes" Then
@@ -86,10 +82,9 @@ Sub PostSurveyData()
 
                         Case "N"
 
-                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Row, Rng_Cell2.Column).Value
+                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
                         If Str_QResponse <> "" Then
                             i = i + 1
-                            '--Resize LAST dimension (allowed with Preserve)
                             ReDim Preserve Var_ResponsesArray(1 To 3, 1 To i)
                             Var_ResponsesArray(1, i) = Rng_Cell2.Value
                             Var_ResponsesArray(2, i) = Str_QResponse
@@ -98,10 +93,9 @@ Sub PostSurveyData()
 
                         Case "TX"
 
-                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Row, Rng_Cell2.Column).Value
+                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
                         If Str_QResponse <> "" Then
                             i = i + 1
-                            '--Resize LAST dimension (allowed with Preserve)
                             ReDim Preserve Var_ResponsesArray(1 To 3, 1 To i)
                             Var_ResponsesArray(1, i) = Rng_Cell2.Value
                             Var_ResponsesArray(2, i) = """" & Str_QResponse & """"
@@ -110,14 +104,13 @@ Sub PostSurveyData()
 
                         Case "DT"
 
-                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Row, Rng_Cell2.Column).Value
+                        Str_QResponse = Wsh_Home.Cells(Rng_Cell.Cells(1).Row, Rng_Cell2.Column).Value
                         If Str_QResponse <> "" Then
                             i = i + 1
-                            '--Resize LAST dimension (allowed with Preserve)
                             ReDim Preserve Var_ResponsesArray(1 To 3, 1 To i)
                             Var_ResponsesArray(1, i) = Rng_Cell2.Value
                             Var_ResponsesArray(2, i) = """" & Str_QResponse & """"
-                            Var_ResponsesArray(3, i) = "date" '-- TBC with API team before Session 11
+                            Var_ResponsesArray(3, i) = "date"
                         End If
 
                         End Select
@@ -125,42 +118,36 @@ Sub PostSurveyData()
 
                 Next Rng_Cell2
             End If
-        '--Each stage only proceeds if the previous one was successful
-        '--We API to the database to get the next available casecode which is then created
-        If Rng_Cell.Offset(0, -4).Value = "Yes" And Var_Result = vbYes Then
-            Str_CaseCode = RetrieveNextCaseCode(Lng_OrgId, Str_SubID)
-            If Str_CaseCode = "" Then
-                MsgBox "Unable to retrieve next casecode, please ensure you have selected a submission", vbCritical, "API Failure"
-                Exit Sub
-            Else
-                'application transpose is causing weirdness when the multi array only has one response.
-                'It converts the array to a single dimension which causes subsequent rows to fail
-                Dim x As Long
 
-                ReDim Var_FinalArray(1 To i, 1 To 3)
+            If Rng_Cell.Cells(1).Value = "Yes" And Var_Result = vbYes Then
+                Str_CaseCode = RetrieveNextCaseCode(Lng_OrgId, Str_SubID)
+                If Str_CaseCode = "" Then
+                    MsgBox "Unable to retrieve next casecode, please ensure you have selected a submission", vbCritical, "API Failure"
+                    Exit Sub
+                Else
+                    Dim x As Long
+                    ReDim Var_FinalArray(1 To i, 1 To 3)
+                    For x = 1 To i
+                        Var_FinalArray(x, 1) = Var_ResponsesArray(1, x)
+                        Var_FinalArray(x, 2) = Var_ResponsesArray(2, x)
+                        Var_FinalArray(x, 3) = Var_ResponsesArray(3, x)
+                    Next x
 
-                For x = 1 To i
-                    Var_FinalArray(x, 1) = Var_ResponsesArray(1, x)
-                    Var_FinalArray(x, 2) = Var_ResponsesArray(2, x)
-                    Var_FinalArray(x, 3) = Var_ResponsesArray(3, x)
-                Next x
-
-                If APISurveyData(Str_CaseCode, Str_SubID, Str_ServiceId, Var_FinalArray) = True Then
-                    '--Next, we mark the case code as complete
-                    If API_CloseCaseCode(Str_SubID, Str_CaseCode) = True Then
-                        Rng_Cell.Offset(0, -1).Value = Str_CaseCode
+                    If APISurveyData(Str_CaseCode, Str_SubID, Str_ServiceId, Var_FinalArray) = True Then
+                        If API_CloseCaseCode(Str_SubID, Str_CaseCode) = True Then
+                            Rng_Cell.Cells(1).Offset(0, 5).Value = Str_CaseCode
+                        Else
+                            MsgBox "Unable to set case code to Completed", vbCritical, "API Failure"
+                            Exit Sub
+                        End If
                     Else
-                        MsgBox "Unable to set case code to Completed", vbCritical, "API Failure"
+                        MsgBox "Your case code has been created and validated but unable to submit survey data through API", vbCritical, "API Failure"
                         Exit Sub
                     End If
-                Else
-                    MsgBox "Your case code has been created and validated but unable to submit survey data through API", vbCritical, "API Failure"
-                    Exit Sub
                 End If
             End If
         End If
-    End If
-    Rng_Cell.Offset(0, -4).Value = "No"
+        If Rng_Cell.Cells(1).Value = "Yes" Then Rng_Cell.Cells(1).Value = "No"
     Next Rng_Cell
     MsgBox "Import Complete", vbInformation, "Import Complete"
 

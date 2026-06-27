@@ -171,4 +171,16 @@ When the user chooses to start fresh, `FullDataArea.Clear` is used rather than `
 The Error Log sheet is intentionally plain — no panel colours, no formatting beyond the user-applied bold on row 1. It is a diagnostic export tool, not a user-facing sheet. One row per validation error: Row, Unique Ref, Question ID, Question No., Question Type, Invalid Value. The sheet is cleared and re-headed at the start of each B6 run.
 
 ### Case code column holds the case code returned by the API
-Column J on the Home sheet receives the case code written back by A3 after a successful post. It does not hold a unique reference string or any other value. The unique reference ("Patient 1" etc.) is in column K. This is consistent with A3's existing logic: `Rng_Cell.Offset(0, -1).Value = Str_CaseCode`.
+Column K on the Home sheet receives the case code written back by A3 after a successful post. It does not hold a unique reference string or any other value. The unique reference ("Patient 1" etc.) is in column L. This is consistent with A3's writeback: `Rng_Cell.Cells(1).Offset(0, 5).Value = Str_CaseCode`.
+
+### Org ID column added to Home sheet; passed through B4 → B1 → Home
+A new Org ID column was added at column I (between Submission Name and Sub ID) during Session G. Org ID is read from column 1 of the Orgs sheet at the point of matching in B4 and passed to B1 as a new parameter (`Lng_OrgID`). B1 writes it to `DataArea.Column - 3`. A3 reads it from `Rng_Cell.Cells(1).Offset(0, 3)` (column F + 3 = column I). The value is a plain Long integer — no string parsing required.
+
+### A3 iterates FullDataArea column 1 using .Cells; reads toggle cell directly
+`Rng_DataRows` is set to `Rng_FullDataArea.Columns(1).Cells` (column F — the Yes/No toggle). The `.Cells` call is required to force VBA to iterate cell by cell rather than treating the derived column range as a single object. All references within the loop use `Rng_Cell.Cells(1)` for the same reason. The loop exits on the first blank cell to avoid iterating the full extent of `FullDataArea`.
+
+### API payload trailing comma fix: prepend pattern with safety net Replace
+The original `API_PostSurvey` payload builder appended a comma after each item except the last. When the last item in the array had a blank value and was skipped, the previous item's trailing comma remained, producing invalid JSON. Fixed by switching to a prepend pattern: a `Bln_FirstItem` flag suppresses the comma before the first written item; all subsequent items receive a leading comma. A `Replace(Str_Payload & "]", ",]", "]")` call is retained as a safety net.
+
+### LS lookup: search even column (item text), return odd column (item ID)
+The Drop downs sheet structure is: odd columns hold QID (row 1), question label (row 2), list item IDs (row 3+); even columns hold blank (rows 1–2), response text (row 3+). The LS lookup in A3 must search the even column (response text) to find a match and return the adjacent odd column (item ID). The original code had this inverted. The corrected lookup targets `Lng_QuestionLookupCol + 1` for the search range (starting row 3) and offsets `(0, -1)` for the return range.

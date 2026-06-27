@@ -13,13 +13,16 @@ Option Explicit
 '     → Read org name and submission descriptor via XLookup on Support sheet
 '     → Close file
 '     → Org/submission matching decision tree
-'     → B1: FileImporter (file path, submission ID, org name, sub name,
-'                         ByRef Lng_FirstRow, ByRef Lng_LastRow)
+'     → B1: FileImporter (file path, submission ID, org ID, org name,
+'                         sub name, ByRef Lng_FirstRow, ByRef Lng_LastRow)
 '
 ' Matching decision tree:
 '   Case 1 - No org match:       message + skip, no user choice
 '   Case 2 - One submission:     Yes/No confirmation before process
 '   Case 3 - Multiple subs:      numbered InputBox + confirmation before process
+'
+' Org ID is read from column 1 of the Orgs sheet at the matched row
+' and passed through to B1 for writing to the Home sheet.
 '
 ' After all files processed, calls B6_Response_Validator if any
 ' rows were imported, passing the full row range of the run.
@@ -195,6 +198,8 @@ Sub PickAndProcess()
         ElseIf Int_MatchCount = 1 Then
 
             '--Case 2: Exactly one submission
+            Dim Lng_OrgID2 As Long
+            Lng_OrgID2 = CLng(Wsh_Orgs.Cells(Arr_MatchRows(1), 1).Value)
             Dim Str_SubName2 As String
             Str_SubName2 = Trim(CStr(Wsh_Orgs.Cells(Arr_MatchRows(1), 3).Value))
             Dim Lng_SubID2 As Long
@@ -216,7 +221,7 @@ Sub PickAndProcess()
             If MsgBox(Str_Msg2, vbQuestion + vbYesNo, "Confirm Submission") = vbYes Then
                 Lng_FileFirstRow = 0
                 Lng_FileLastRow = 0
-                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2, Str_OrgName, Str_SubName2, _
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID2, Lng_OrgID2, Str_OrgName, Str_SubName2, _
                                               Lng_FileFirstRow, Lng_FileLastRow)
                 If Lng_FileFirstRow > 0 Then
                     If Lng_RunFirstRow = 0 Then Lng_RunFirstRow = Lng_FileFirstRow
@@ -257,6 +262,8 @@ Sub PickAndProcess()
             If Int_Choice >= 1 And Int_Choice <= Int_MatchCount Then
 
                 '--Valid choice - confirm before processing
+                Dim Lng_OrgID3 As Long
+                Lng_OrgID3 = CLng(Wsh_Orgs.Cells(Arr_MatchRows(Int_Choice), 1).Value)
                 Dim Lng_SubID3 As Long
                 Lng_SubID3 = CLng(Wsh_Orgs.Cells(Arr_MatchRows(Int_Choice), 4).Value)
                 Dim Str_SubName3 As String
@@ -270,7 +277,7 @@ Sub PickAndProcess()
 
                 Lng_FileFirstRow = 0
                 Lng_FileLastRow = 0
-                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3, Str_OrgName, Str_SubName3, _
+                Call B1_Importer.FileImporter(Str_FilePath, Lng_SubID3, Lng_OrgID3, Str_OrgName, Str_SubName3, _
                                               Lng_FileFirstRow, Lng_FileLastRow)
                 If Lng_FileFirstRow > 0 Then
                     If Lng_RunFirstRow = 0 Then Lng_RunFirstRow = Lng_FileFirstRow

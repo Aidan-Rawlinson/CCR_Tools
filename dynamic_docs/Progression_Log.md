@@ -298,3 +298,36 @@
   - Error Log: cleared and re-headed each run; one row per error (Row, Unique Ref, Question ID, Question No., Question Type, Invalid Value)
   - Summary MsgBox: count of errors found, or clean pass message
 - All three modules reimported by user; confirmed passing with no errors on clean synthetic data
+
+## Session G — 27 June 2026
+
+**Outcome:** First live API test successful. Full end-to-end pipeline confirmed working. Multiple bugs identified and fixed.
+
+- **Home sheet updated** by user before session start: new Org ID column inserted at column I; all named ranges updated in workbook accordingly.
+- **`A3_API_Calls.bas` updated:**
+  - `Rng_DataRows` changed from `Rng_FullDataArea.Columns(5)` to `Rng_FullDataArea.Columns(1).Cells` — iterates column F (Yes/No toggle) cell by cell
+  - Loop condition changed from offset-based to `Rng_Cell.Cells(1).Value = "Yes"` — direct read of toggle cell
+  - `Lng_OrgId` read from `Rng_Cell.Cells(1).Offset(0, 3)` (column I, Org ID) — `Split` on `"-"` removed
+  - `Str_SubID` read from `Rng_Cell.Cells(1).Offset(0, 4)` (column J, Sub ID)
+  - Both reads moved outside the question loop — once per row, not once per question
+  - Case code writeback: `Rng_Cell.Cells(1).Offset(0, 5).Value = Str_CaseCode` (column K)
+  - Yes→No: `If Rng_Cell.Cells(1).Value = "Yes" Then Rng_Cell.Cells(1).Value = "No"` — conditional, not unconditional
+  - Exit For on blank cell added to avoid iterating entire FullDataArea
+- **`B1_Importer.bas` updated:**
+  - New parameter `ByVal Lng_OrgID As Long` added
+  - `Rng_FullDataArea` declared and set
+  - Writes `"Yes"` to `Rng_FullDataArea.Column` (column F) on each imported row
+  - Writes `Lng_OrgID` to `DataArea.Column - 3` (column I) on each imported row
+  - Column offsets updated throughout: OrgName → `-5`, SubName → `-4`, OrgID → `-3`, SubID → `-2`
+- **`B4_Process_Folder.bas` updated:**
+  - `Lng_OrgID2` / `Lng_OrgID3` declared and read from `Wsh_Orgs.Cells(row, 1)` at each match case
+  - Both `FileImporter` call sites updated with new `Lng_OrgID` parameter
+- **`A2_API_FUNCTIONS.bas` updated:**
+  - Trailing comma bug fixed in `API_PostSurvey` payload builder: comma now prepended before each item (except first) using `Bln_FirstItem` flag, rather than appended after each item except last — eliminates trailing comma when last item has a blank value
+  - Additionally: `Replace(Str_Payload & "]", ",]", "]")` added as a safety net
+- **LS lookup bug fixed in A3:**
+  - `Rng_LookupRange` now starts at row 3 (was row 2 — off by one; row 2 is the question label)
+  - `Rng_LookupRange` now targets `Lng_QuestionLookupCol + 1` (even column = item text) and returns `Offset(0, -1)` (odd column = item ID) — previously had search and return columns swapped
+- **For Each iteration instability:** user applied `.Cells` to `Rng_DataRows` declaration (`Rng_FullDataArea.Columns(1).Cells`) and `Rng_Cell.Cells(1)` throughout — resolves VBA range iteration instability on derived column ranges
+- **API test results:** YN, N, TX all posting correctly first time. LS posting correctly after lookup fix. Case codes created, responses posted, case codes closed. Case code written back to column K. Yes flipped to No.
+- All four modules (`A2`, `A3`, `B1`, `B4`) reimported by user after session fixes confirmed

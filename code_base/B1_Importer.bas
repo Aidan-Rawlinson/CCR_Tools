@@ -7,8 +7,9 @@ Option Explicit
 ' Pure data transfer. Called by B4_Process_Folder once a file
 ' has passed validation (B5) and been matched to a submission.
 '
-' Accepts file path, submission ID, org name, and submission
-' name as parameters. No validation logic -- B5 owns that.
+' Accepts file path, submission ID, org ID, org name, and
+' submission name as parameters. No validation logic -- B5
+' owns that.
 '
 ' Returns Lng_FirstRow and Lng_LastRow as ByRef output
 ' parameters so B4 can track the full row range imported
@@ -17,6 +18,15 @@ Option Explicit
 ' Finds the next empty row on the Home sheet and appends;
 ' does not clear existing data (clearing is handled by B4
 ' at the start of the process run).
+'
+' On each imported row writes:
+'   Col F (FullDataArea col 1) -- "Yes" (process toggle)
+'   Col G (DataArea - 5)       -- Org Name
+'   Col H (DataArea - 4)       -- Submission Name
+'   Col I (DataArea - 3)       -- Org ID
+'   Col J (DataArea - 2)       -- Sub ID
+'   Col L (DataArea)           -- Unique Ref
+'   Col M+ (QuestionCols)      -- Question responses
 '
 ' Skips any patient position where all question cells are blank
 ' (threshold: at least 1 non-blank response required to import).
@@ -27,6 +37,7 @@ Option Explicit
 ' ============================================================
 
 Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
+                 ByVal Lng_OrgId As Long, _
                  ByVal Str_OrgName As String, ByVal Str_SubName As String, _
                  ByRef Lng_FirstRow As Long, ByRef Lng_LastRow As Long)
 
@@ -40,6 +51,7 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
     Dim Rng_QuestionCols As Range:          Set Rng_QuestionCols = ThisWorkbook.Names("QuestionCols").RefersToRange
     Dim Rng_StartCols As Range:             Set Rng_StartCols = ThisWorkbook.Names("StartCols").RefersToRange
     Dim Rng_DataArea As Range:              Set Rng_DataArea = ThisWorkbook.Names("DataArea").RefersToRange
+    Dim Rng_FullDataArea As Range:          Set Rng_FullDataArea = ThisWorkbook.Names("FullDataArea").RefersToRange
     Dim Rng_Cell As Range
     Dim Lng_Record As Long
     Dim Lng_StartIndex As Long
@@ -93,14 +105,16 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
                 '--Read unique reference using the row number stored in StartCols(1)
                 Str_UniqueRef = Wsh_Source.Cells(Rng_StartCols.Cells(1, 1).Value, Lng_Record).Value
 
-                '--Write org name, submission name, submission ID, and unique reference to Home
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_OrgName
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Str_SubName
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef
+                '--Write process toggle, org name, submission name, org ID, sub ID, and unique reference to Home
+                Wsh_Home.Cells(Lng_PasteRow, Rng_FullDataArea.Column).Value = "Yes"          '--Col F
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 5).Value = Str_OrgName    '--Col G
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_SubName    '--Col H
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Lng_OrgId      '--Col I
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID '--Col J
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef      '--Col L
 
                 '--Write question responses using StartCols to find source row for each question
-                Lng_ColIndex = 2 '--Start at second cell in StartCols (K onwards = questions)
+                Lng_ColIndex = 2 '--Start at second cell in StartCols (questions only)
                 For Each Rng_Cell In Rng_QuestionCols
                     If Rng_Cell.Column > Rng_DataArea.Column Then
                         Lng_Position = Rng_StartCols.Cells(1, Lng_ColIndex).Value
@@ -145,14 +159,16 @@ Sub FileImporter(ByVal Str_FilePath As String, ByVal Lng_SubmissionID As Long, _
                 '--Read unique reference using the column number stored in StartCols(1)
                 Str_UniqueRef = Wsh_Source.Cells(Lng_Record, Rng_StartCols.Cells(1, 1).Value).Value
 
-                '--Write org name, submission name, submission ID, and unique reference to Home
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_OrgName
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Str_SubName
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID
-                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef
+                '--Write process toggle, org name, submission name, org ID, sub ID, and unique reference to Home
+                Wsh_Home.Cells(Lng_PasteRow, Rng_FullDataArea.Column).Value = "Yes"          '--Col F
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 5).Value = Str_OrgName    '--Col G
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 4).Value = Str_SubName    '--Col H
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 3).Value = Lng_OrgId      '--Col I
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column - 2).Value = Lng_SubmissionID '--Col J
+                Wsh_Home.Cells(Lng_PasteRow, Rng_DataArea.Column).Value = Str_UniqueRef      '--Col L
 
                 '--Write question responses using StartCols to find source column for each question
-                Lng_ColIndex = 2 '--Start at second cell in StartCols (K onwards = questions)
+                Lng_ColIndex = 2 '--Start at second cell in StartCols (questions only)
                 For Each Rng_Cell In Rng_QuestionCols
                     If Rng_Cell.Column > Rng_DataArea.Column Then
                         Lng_Position = Rng_StartCols.Cells(1, Lng_ColIndex).Value

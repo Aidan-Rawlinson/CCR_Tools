@@ -1,27 +1,30 @@
 <!-- Purpose: Claude's handoff note -- what to pick up, open questions, and suggested first steps for the next session. Written by Claude at session end. -->
 
-## Handoff for Session G — First Live API Test
+## Handoff for Session H — Build B7_Duplicate_Detector
 
 ### Context
-Session F is complete. B6 is built, tested, and passing cleanly on all five question types. The full pipeline — pick, validate, match, import, validate responses — is working end-to-end. The tool is ready for live API testing against the test database.
+Session G is complete. The full pipeline is working end-to-end: import, validate responses (B6), post to database (A3), case code written back, Yes flipped to No. TX confirmed working with placeholder `"text"` questionType. LS lookup confirmed working after fixes to column direction and row start.
 
-### Gate
-Session G is blocked on test database access. This must be confirmed available before starting.
+### What to do in Session H
+Build `B7_Duplicate_Detector.bas`. This module:
+- Runs after B6 (called from B4 after B6, or triggered separately — to be agreed)
+- Calls the API to retrieve existing case codes for the submission (`GetCaseCodeNote` in A2)
+- Compares the unique reference in column L against case code notes from the API
+- Colours rows green where a matching case code is found (likely already imported)
+- Sets column F to "No" for matched rows (pre-populates the toggle; user retains override)
+- Operates on current-run rows only (same first/last row range passed from B4)
 
-### What to do in Session G
-1. Confirm credentials are entered in Config (APIUsername / APIPassword)
-2. Confirm Toggle is set to Test
-3. Run Populate Submissions — verify Orgs sheet populates correctly for Managing Frailty (Project 35)
-4. Process one test file — verify import, B6 validation, and Home sheet layout all look correct
-5. Post one row — step through A3 manually if needed; verify case code written back to column J
-6. Check the test database directly via SSMS to confirm the record landed correctly
+### Design questions to resolve at session start
+1. Should B7 be called automatically by B4 after B6, or triggered by a separate button?
+2. Green colouring — entire row, or just specific columns? Alex's tool coloured response cells green where values matched the database. Confirm desired scope.
+3. Should B7 also call `GetCaseCodeResponses` to do a cell-level response comparison (green = match, orange = mismatch on already-imported rows), or is reference-level detection sufficient for now?
 
 ### Watch points
-- A3 reads `Rng_DataRows` as column 5 of `FullDataArea` — this is column J (CaseCode), not column K (Unique Ref). Double-check the offset arithmetic lands on column F for the Yes/No toggle before posting.
-- The `Lng_OrgId` split on `"-"` in A3 (`Split(Rng_Cell.Offset(0, -3).Value, "-")(0)`) — column I holds the Sub ID (a plain integer), not an org-dashed string. Verify this doesn't error on clean data; if it does, a small fix to read org ID differently will be needed.
-- TX and DT questionType strings in A3 are placeholders (`"text"` and `"date"`). These may or may not be correct — if the API rejects them, note the error response and flag for the API team.
+- `GetCaseCodeNote` in A2 currently filters to `dataSubmitted = "True"` and `completionStatus = "Completed"` — this means in-progress or failed case codes are not returned. Confirm this is the right filter for duplicate detection.
+- The unique reference in column L is "Patient 1", "Patient 2" etc. The case code note field holds the same string (written by A3 at post time). The comparison is a straight string match.
+- B7 needs the submission ID per row — available from column J (Sub ID).
 
 ### Pre-session checklist
-- [ ] Test database access confirmed
-- [ ] Credentials available for Config entry
-- [ ] At least one clean test file ready (files 1–4 in test_inputs/ are pre-populated)
+- [ ] Confirm B7 trigger mechanism (auto from B4 vs separate button)
+- [ ] Confirm green colouring scope
+- [ ] Confirm whether response-level comparison is in scope for this session

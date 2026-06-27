@@ -130,6 +130,7 @@ Public Function API_PostSurvey(Str_CaseCode As String, Str_SubID As String, Str_
     Next i
 
     Str_Payload = Str_Payload & "]"
+    Str_Payload = Replace(Str_Payload, ",]", "]")
     Str_APIResponse = APIPost(Str_URL, Str_Payload)
 
     If Str_APIResponse = "{""success"":true}" Then
